@@ -7,7 +7,6 @@ import fs from 'node:fs/promises'
 import { DAILY_LIMITS, MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '../config/constants'
 import { logger } from '../config/logger'
 import { PlanTypeEnum } from '../enums/plan-type.enum'
-import { InvalidFileError } from '../errors/invalid-file.error'
 import { LimitExceededError } from '../errors/limit-exceeded.error'
 import { SessionValidationError } from '../errors/session-validation.error'
 

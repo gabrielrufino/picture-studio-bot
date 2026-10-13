@@ -10,7 +10,6 @@ import { CommandEnum } from '../enums/command.enum'
 import { InvalidFileError } from '../errors/invalid-file.error'
 import { LimitExceededError } from '../errors/limit-exceeded.error'
 import { UserNotFoundError } from '../errors/user-not-found.error'
-import { CompressParamsSchema } from '../schemas'
 import { BaseHandler } from './base.handler'
 
 export class CompressHandler extends BaseHandler {

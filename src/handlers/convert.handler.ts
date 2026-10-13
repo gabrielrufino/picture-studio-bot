@@ -23,8 +23,8 @@ export class ConvertHandler extends BaseHandler {
 
   public readonly events = {
     'msg:photo': async (ctx: CustomContext) => {
-      let inputPath: string | undefined
-      let outputPath: string | undefined
+      // let inputPath: string | undefined
+      // let outputPath: string | undefined
 
       try {
         if (!ctx.user) {
