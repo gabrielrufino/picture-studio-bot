@@ -1,0 +1,21 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  delivery:
+    name: Delivery
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actalog/check-ci@main
+      - uses: actions/checkout@v5
+      - run: echo "Your delivery here"
