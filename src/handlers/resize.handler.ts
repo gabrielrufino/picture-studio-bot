@@ -1,0 +1,138 @@
+import type { UserRepository } from '../repositories/user.repository'
+import type { CustomContext } from '../types/custom-context.type'
+import crypto from 'node:crypto'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import { join } from 'node:path'
+import { InputFile } from 'grammy'
+import sharp from 'sharp'
+import { CommandEnum } from '../enums/command.enum'
+import { InvalidFileError } from '../errors/invalid-file.error'
+import { LimitExceededError } from '../errors/limit-exceeded.error'
+import { UserNotFoundError } from '../errors/user-not-found.error'
+import { ResizeParamsSchema } from '../schemas'
+import { BaseHandler } from './base.handler'
+
+export class ResizeHandler extends BaseHandler {
+  public readonly command = CommandEnum.Resize
+  public readonly description = '📐 Resize an image'
+
+  constructor(private readonly userRepository: UserRepository) {
+    super()
+  }
+
+  public readonly events = {
+    'msg:photo': async (ctx: CustomContext) => {
+      try {
+        if (!ctx.user) {
+          throw new UserNotFoundError()
+        }
+
+        const photo = ctx.message.photo[ctx.message.photo.length - 1]
+        const fileSize = photo.file_size ?? 0
+        await this.checkLimits(ctx, { fileSize })
+
+        ctx.session.params = {
+          file_id: photo.file_id,
+        }
+
+        const keyboard = new InlineKeyboard()
+          .text('256x256', 'resize_256_256')
+          .text('512x512', 'resize_512_512')
+          .text('1024x1024', 'resize_1024_1024')
+
+        await ctx.reply(ctx.t('resize_choose_size'), {
+          reply_markup: keyboard,
+        })
+      }
+      catch (error) {
+        if (error instanceof InvalidFileError || error instanceof LimitExceededError) {
+          return
+        }
+
+        this.logger.error(error)
+        await ctx.reply(ctx.t('resize_error'))
+      }
+    },
+    'callback_query': async (ctx: CustomContext) => {
+      let inputPath: string | undefined
+      let outputPath: string | undefined
+
+      try {
+        if (!ctx.user) {
+          throw new UserNotFoundError()
+        }
+
+        const data = ctx.callbackQuery?.data
+        if (!data?.startsWith('resize_'))
+          return
+
+        const [, widthStr, heightStr] = data.split('_')
+        if (!widthStr || !heightStr)
+          return
+        const width = Number(widthStr)
+        const height = Number(heightStr)
+
+        if (![256, 512, 1024].includes(width) || ![256, 512, 1024].includes(height))
+          return
+
+        await ctx.answerCallbackQuery()
+
+        const { file_id: fileId } = this.validateParams(ResizeParamsSchema, ctx.session.params)
+
+        await ctx.editMessageText(ctx.t('resize_resizing'))
+
+        const file = await ctx.api.getFile(fileId)
+
+        const fileSize = file.file_size ?? 0
+        await this.checkLimits(ctx, { fileSize })
+
+        await this.runWithUsage(ctx, this.userRepository, async () => {
+          inputPath = await file.download()
+
+          if (!inputPath) {
+            throw new Error('Failed to download file')
+          }
+
+          const buffer = await sharp(inputPath)
+            .resize(width, height)
+            .toBuffer()
+
+          outputPath = join(os.tmpdir(), `resize-${crypto.randomUUID()}.jpg`)
+          await fs.writeFile(outputPath, buffer)
+
+          const resizedFile = new InputFile(outputPath, 'resized.jpg')
+          await ctx.replyWithPhoto(resizedFile, {
+            caption: ctx.t('resize_success'),
+          })
+        })
+      }
+      catch (error) {
+        if (error instanceof LimitExceededError) {
+          return
+        }
+
+        this.logger.error(error)
+        await ctx.reply(ctx.t('resize_error'))
+      }
+      finally {
+        if (inputPath) {
+          await fs.rm(inputPath, { force: true }).catch(error =>
+            this.logger.error({ error, path: inputPath }, 'Failed to remove input file.'),
+          )
+        }
+        if (outputPath) {
+          await fs.rm(outputPath, { force: true }).catch(error =>
+            this.logger.error({ error, path: outputPath }, 'Failed to remove output file.'),
+          )
+        }
+        await this.resetSession(ctx)
+      }
+    },
+  }
+
+  public async onCommand(ctx: CustomContext): Promise<void> {
+    await this.setSessionCommand(ctx)
+    await ctx.reply(ctx.t('resize_send_file'))
+  }
+}

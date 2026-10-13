@@ -1,14 +1,44 @@
-# Node Project - Template
+# Picture Studio Bot
+
+A Telegram bot for processing and manipulating images.
+
+## Features
+
+- 🗜️ **Compress** - Reduce image file size
+- 🔄 **Convert** - Convert between formats (JPEG, PNG, WebP)
+- ✂️ **Crop** - Crop images to custom dimensions
+- 📐 **Resize** - Resize images to preset dimensions
+- 🔄 **Rotate** - Rotate images by 90°, 180°, or -90°
 
 ## Getting started
 
-1. Create a new repository using this one as the template
-2. Clone the repository
-3. Update the package name
+1. Clone the repository
+2. Install dependencies
     ```bash
-    npm pkg set name="@gabrielrufino/something"
+    pnpm install
     ```
-4. Update the package description
+3. Set up environment variables
     ```bash
-    npm pkg set description="Description about something"
+    cp .env.example .env
     ```
+4. Start the bot
+    ```bash
+    pnpm start:dev
+    ```
+
+## Commands
+
+- `/start` - Start using the bot
+- `/help` - Show available commands
+- `/compress` - Compress an image
+- `/convert` - Convert an image format
+- `/crop` - Crop an image
+- `/resize` - Resize an image
+- `/rotate` - Rotate an image
+- `/pro` - Upgrade to Pro
+- `/language` - Change language
+- `/feedback` - Send feedback
+
+## License
+
+UNLICENSED

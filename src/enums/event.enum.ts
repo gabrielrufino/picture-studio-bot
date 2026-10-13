@@ -1,0 +1,27 @@
+export enum EventEnum {
+  CommandCompress = 'command_compress',
+  CommandConvert = 'command_convert',
+  CommandCrop = 'command_crop',
+  CommandFeedback = 'command_feedback',
+  CommandHelp = 'command_help',
+  CommandLanguage = 'command_language',
+  CommandPro = 'command_pro',
+  CommandResize = 'command_resize',
+  CommandRotate = 'command_rotate',
+  CommandStart = 'command_start',
+  CommandVersion = 'command_version',
+
+  ButtonCompress = 'button_compress',
+  ButtonConvert = 'button_convert',
+  ButtonCrop = 'button_crop',
+  ButtonFeedback = 'button_feedback',
+  ButtonHelp = 'button_help',
+  ButtonLanguage = 'button_language',
+  ButtonPro = 'button_pro',
+  ButtonResize = 'button_resize',
+  ButtonRotate = 'button_rotate',
+  ButtonStart = 'button_start',
+  ButtonVersion = 'button_version',
+
+  FileReceived = 'file_received',
+}
