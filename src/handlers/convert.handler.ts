@@ -31,6 +31,8 @@ export class ConvertHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
+        if (!ctx.message?.photo)
+          return
         const photo = ctx.message.photo[ctx.message.photo.length - 1]
         const fileSize = photo.file_size ?? 0
         await this.checkLimits(ctx, { fileSize })
@@ -93,7 +95,7 @@ export class ConvertHandler extends BaseHandler {
           }
 
           const buffer = await sharp(inputPath)
-            .toFormat(format as sharp.FormatEnum)
+            .toFormat(format as 'jpeg' | 'png' | 'webp')
             .toBuffer()
 
           const ext = format === 'jpeg' ? 'jpg' : format

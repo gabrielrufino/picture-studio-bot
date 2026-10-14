@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { join } from 'node:path'
-import { InputFile } from 'grammy'
+import { InlineKeyboard, InputFile } from 'grammy'
 import sharp from 'sharp'
 import { CommandEnum } from '../enums/command.enum'
 import { InvalidFileError } from '../errors/invalid-file.error'
@@ -28,6 +28,8 @@ export class ResizeHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
+        if (!ctx.message?.photo)
+          return
         const photo = ctx.message.photo[ctx.message.photo.length - 1]
         const fileSize = photo.file_size ?? 0
         await this.checkLimits(ctx, { fileSize })

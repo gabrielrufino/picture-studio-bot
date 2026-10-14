@@ -8,6 +8,7 @@
   "main": "dist/index.cjs",
   "scripts": {
     "build": "tsdown src/index.ts --format cjs",
+    "prebuild": "pnpm run build:check",
     "build:check": "tsc --noEmit",
     "build:watch": "tsdown src/index.ts --watch",
     "lint": "eslint ./src",

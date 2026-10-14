@@ -136,7 +136,7 @@ export abstract class BaseHandler {
     }
 
     if ('paths' in params && Array.isArray(params.paths)) {
-      paths.push(...params.paths.filter((p): p is string => typeof p === 'string'))
+      paths.push(...params.paths.filter((p: unknown): p is string => typeof p === 'string'))
     }
 
     await Promise.all(

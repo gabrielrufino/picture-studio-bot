@@ -27,6 +27,8 @@ export class RotateHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
+        if (!ctx.message?.photo)
+          return
         const photo = ctx.message.photo[ctx.message.photo.length - 1]
         const documentId = photo.file_id
         if (!documentId)

@@ -1,4 +1,5 @@
 import type { UserRepository } from '../repositories/user.repository'
+import type { CompressParams } from '../schemas'
 import type { CustomContext } from '../types/custom-context.type'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
@@ -30,6 +31,8 @@ export class CompressHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
+        if (!ctx.message?.photo)
+          return
         const photo = ctx.message.photo[ctx.message.photo.length - 1]
         const fileSize = photo.file_size ?? 0
         await this.checkLimits(ctx, { fileSize })
@@ -44,7 +47,7 @@ export class CompressHandler extends BaseHandler {
 
           await ctx.reply(ctx.t('compress_compressing'))
 
-          const quality = ctx.session.params?.quality ?? 80
+          const quality = (ctx.session.params as CompressParams)?.quality ?? 80
 
           const buffer = await sharp(inputPath)
             .jpeg({ quality })
@@ -77,7 +80,7 @@ export class CompressHandler extends BaseHandler {
       finally {
         ctx.session.params = {
           paths: [inputPath, outputPath].filter(Boolean) as string[],
-        }
+        } as CompressParams
         await this.resetSession(ctx)
       }
     },

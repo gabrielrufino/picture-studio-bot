@@ -109,7 +109,7 @@ describe(CompressHandler.name, () => {
         vi.mocked(sharp).mockReturnValue({
           jpeg: vi.fn().mockReturnThis(),
           toBuffer: vi.fn().mockResolvedValue(Buffer.from('this buffer is larger than 50 bytes so no reduction happens')),
-        })
+        } as any)
 
         const downloadMock = vi.fn().mockResolvedValue('/tmp/input.jpg')
         ctx.getFile = vi.fn().mockResolvedValue({ download: downloadMock })

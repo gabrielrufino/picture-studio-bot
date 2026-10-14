@@ -21,6 +21,8 @@ export class CropHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
+        if (!ctx.message?.photo)
+          return
         const photo = ctx.message.photo[ctx.message.photo.length - 1]
         const fileSize = photo.file_size ?? 0
         await this.checkLimits(ctx, { fileSize })

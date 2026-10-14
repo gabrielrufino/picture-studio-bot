@@ -7,8 +7,11 @@ export enum CommandEnum {
   Help = 'help',
   Language = 'language',
   Pro = 'pro',
+  PutPassword = 'put_password',
+  RemovePassword = 'remove_password',
   Resize = 'resize',
   Rotate = 'rotate',
   Start = 'start',
+  Test = 'test',
   Version = 'version',
 }
