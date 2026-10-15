@@ -6,6 +6,8 @@ services:
     container_name: picture-studio-bot
     env_file:
       - .env
+    environment:
+      - MONGODB_CONNECTION_STRING=mongodb://mongo:27017/picture_studio
     depends_on:
       mongo:
         condition: service_healthy
