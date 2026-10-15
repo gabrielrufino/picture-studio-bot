@@ -1,9 +1,9 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { InlineKeyboard } from 'grammy'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
-import { LanguageEnum } from '../enums/language.enum'
+import { CommandEnum } from '@/enums/command.enum'
+import { LanguageEnum } from '@/enums/language.enum'
 import { LanguageHandler } from './language.handler'
 
 vi.mock('../config/database', () => ({

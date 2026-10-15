@@ -1,7 +1,7 @@
-import type { FeedbackRepository } from '../repositories/feedback.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { FeedbackRepository } from '@/repositories/feedback.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
+import { CommandEnum } from '@/enums/command.enum'
 import { FeedbackHandler } from './feedback.handler'
 
 describe(FeedbackHandler.name, () => {

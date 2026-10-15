@@ -1,10 +1,10 @@
 import type { NextFunction } from 'grammy'
-import type { CustomContext } from '../types/custom-context.type'
-import { LanguageEnum } from '../enums/language.enum'
-import en from '../locales/en.json'
-import es from '../locales/es.json'
-import pt from '../locales/pt.json'
-import { userRepository } from '../repositories'
+import type { CustomContext } from '@/types/custom-context.type'
+import { LanguageEnum } from '@/enums/language.enum'
+import en from '@/locales/en.json'
+import es from '@/locales/es.json'
+import pt from '@/locales/pt.json'
+import { userRepository } from '@/repositories'
 
 export const locales: Record<string, Record<string, string>> = {
   en,

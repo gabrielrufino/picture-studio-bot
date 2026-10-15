@@ -1,8 +1,8 @@
-import type { MessageEntity } from '../entities/message.entity'
+import type { MessageEntity } from '@/entities/message.entity'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { logger } from '../config/logger'
-import { CommandEnum } from '../enums/command.enum'
-import { messageRepository } from '../repositories'
+import { logger } from '@/config/logger'
+import { CommandEnum } from '@/enums/command.enum'
+import { messageRepository } from '@/repositories'
 import { messageRecorderMiddleware } from './message-recorder.middleware'
 
 vi.mock('../repositories', () => ({

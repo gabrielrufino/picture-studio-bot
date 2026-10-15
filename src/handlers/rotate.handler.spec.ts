@@ -1,12 +1,13 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
 import { InlineKeyboard } from 'grammy'
 import sharp from 'sharp'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
-import { LimitExceededError } from '../errors/limit-exceeded.error'
+import { CommandEnum } from '@/enums/command.enum'
+import { InvalidFileError } from '@/errors/invalid-file.error'
+import { LimitExceededError } from '@/errors/limit-exceeded.error'
 import { RotateHandler } from './rotate.handler'
 
 vi.mock('node:fs/promises', () => ({
@@ -110,6 +111,25 @@ describe(RotateHandler.name, () => {
       await handler.events['msg:photo']!(ctx)
       expect(ctx.reply).toHaveBeenCalledWith('rotate_error')
     })
+
+    it('should return early if no photo attached in msg:photo', async () => {
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({} as any)
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalled()
+      expect(ctx.session.params).toBeNull()
+    })
+
+    it('should ignore LimitExceededError from checkLimits in msg:photo', async () => {
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new LimitExceededError())
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalledWith('rotate_error')
+    })
+
+    it('should ignore InvalidFileError from checkLimits in msg:photo', async () => {
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new InvalidFileError())
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalledWith('rotate_error')
+    })
   })
 
   describe('callback_query', () => {
@@ -166,6 +186,16 @@ describe(RotateHandler.name, () => {
       await handler.events.callback_query!(ctx)
 
       expect(ctx.reply).not.toHaveBeenCalledWith('rotate_error')
+    })
+
+    it('should reply error on unexpected error in callback_query', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new Error('Unexpected'))
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('rotate_error')
+      expect((handler as any).logger.error).toHaveBeenCalled()
     })
 
     it('should handle fs.rm errors', async () => {

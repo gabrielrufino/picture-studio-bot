@@ -1,5 +1,5 @@
 import type { ObjectId } from 'mongodb'
-import type { CurrencyEnum } from '../enums/currency.enum'
+import type { CurrencyEnum } from '@/enums/currency.enum'
 import { BaseEntity } from './base.entity'
 
 export class PaymentEntity extends BaseEntity {

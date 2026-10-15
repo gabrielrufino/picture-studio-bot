@@ -1,16 +1,16 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { join } from 'node:path'
 import { InlineKeyboard, InputFile } from 'grammy'
 import sharp from 'sharp'
-import { CommandEnum } from '../enums/command.enum'
-import { InvalidFileError } from '../errors/invalid-file.error'
-import { LimitExceededError } from '../errors/limit-exceeded.error'
-import { UserNotFoundError } from '../errors/user-not-found.error'
-import { ConvertParamsSchema } from '../schemas'
+import { CommandEnum } from '@/enums/command.enum'
+import { InvalidFileError } from '@/errors/invalid-file.error'
+import { LimitExceededError } from '@/errors/limit-exceeded.error'
+import { UserNotFoundError } from '@/errors/user-not-found.error'
+import { ConvertParamsSchema } from '@/schemas'
 import { BaseHandler } from './base.handler'
 
 export class ConvertHandler extends BaseHandler {
@@ -23,9 +23,6 @@ export class ConvertHandler extends BaseHandler {
 
   public readonly events = {
     'msg:photo': async (ctx: CustomContext) => {
-      // let inputPath: string | undefined
-      // let outputPath: string | undefined
-
       try {
         if (!ctx.user) {
           throw new UserNotFoundError()
@@ -103,7 +100,7 @@ export class ConvertHandler extends BaseHandler {
           await fs.writeFile(outputPath, buffer)
 
           const convertedFile = new InputFile(outputPath, `converted.${ext}`)
-          await ctx.replyWithPhoto(convertedFile, {
+          await ctx.replyWithDocument(convertedFile, {
             caption: ctx.t('convert_success'),
           })
         })

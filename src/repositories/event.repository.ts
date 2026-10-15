@@ -1,6 +1,6 @@
 import type { Db } from 'mongodb'
-import type { EventEntity } from '../entities/event.entity'
-import { EventEnum } from '../enums/event.enum'
+import type { EventEntity } from '@/entities/event.entity'
+import { EventEnum } from '@/enums/event.enum'
 import { BaseRepository } from './base.repository'
 
 export class EventRepository extends BaseRepository<EventEntity> {

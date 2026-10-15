@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "packageManager": "pnpm@10.32.1",
+  "description": "A Telegram bot for processing and manipulating images",
   "author": "Gabriel Rufino <contato@gabrielrufino.com>",
   "license": "UNLICENSED",
   "main": "dist/index.cjs",
@@ -53,7 +54,7 @@
     "tsdown": "0.22.14",
     "tsx": "4.23.11",
     "typescript": "5.9.3",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "4.1.10"
-  },
-  "description": "A Telegram bot for processing and manipulating images"
+  }
 }

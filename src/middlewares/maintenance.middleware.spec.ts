@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { configurationRepository } from '../repositories'
+import { configurationRepository } from '@/repositories'
 import { clearMaintenanceCache, maintenanceMiddleware } from './maintenance.middleware'
 
 vi.mock('../repositories', () => ({

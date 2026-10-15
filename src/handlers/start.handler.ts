@@ -1,9 +1,9 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
-import { UserEntity } from '../entities/user.entity'
-import { CommandEnum } from '../enums/command.enum'
-import { LanguageEnum } from '../enums/language.enum'
-import { WelcomeMessage } from '../messages/welcome.message'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
+import { UserEntity } from '@/entities/user.entity'
+import { CommandEnum } from '@/enums/command.enum'
+import { LanguageEnum } from '@/enums/language.enum'
+import { WelcomeMessage } from '@/messages/welcome.message'
 import { BaseHandler } from './base.handler'
 
 const SUPPORTED_LANGUAGES = new Set(Object.values(LanguageEnum) as string[])

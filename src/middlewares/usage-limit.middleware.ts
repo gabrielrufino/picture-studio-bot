@@ -1,11 +1,11 @@
 import type { NextFunction } from 'grammy'
-import type { BaseHandler } from '../handlers/base.handler'
-import type { CustomContext } from '../types/custom-context.type'
-import { DAILY_LIMITS } from '../config/constants'
-import { UserEntity } from '../entities/user.entity'
-import { LanguageEnum } from '../enums/language.enum'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
-import { userRepository } from '../repositories'
+import type { BaseHandler } from '@/handlers/base.handler'
+import type { CustomContext } from '@/types/custom-context.type'
+import { DAILY_LIMITS } from '@/config/constants'
+import { UserEntity } from '@/entities/user.entity'
+import { LanguageEnum } from '@/enums/language.enum'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { userRepository } from '@/repositories'
 
 export function usageLimitMiddleware(handler: BaseHandler) {
   return async (ctx: CustomContext, next: NextFunction) => {

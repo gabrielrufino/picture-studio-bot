@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { LanguageEnum } from '../enums/language.enum'
-import { userRepository } from '../repositories'
+import { LanguageEnum } from '@/enums/language.enum'
+import { userRepository } from '@/repositories'
 import { i18nMiddleware, locales } from './i18n.middleware'
 
 vi.mock('../repositories', () => ({

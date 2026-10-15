@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { logger } from '../config/logger'
-import { EventEnum } from '../enums/event.enum'
-import { eventRepository } from '../repositories'
+import { logger } from '@/config/logger'
+import { EventEnum } from '@/enums/event.enum'
+import { eventRepository } from '@/repositories'
 import { eventRecorderMiddleware } from './event-recorder.middleware'
 
 vi.mock('../config/logger', () => ({

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { userRepository } from '../repositories'
+import { userRepository } from '@/repositories'
 import { authMiddleware } from './auth.middleware'
 
 vi.mock('../repositories', () => ({
@@ -23,7 +23,7 @@ describe(authMiddleware.name, () => {
 
     await authMiddleware(ctx, next)
 
-    expect(ctx.reply).toHaveBeenCalledWith('Unable to identify you. Access denied.')
+    expect(ctx.reply).toHaveBeenCalledWith('access_denied')
     expect(next).not.toHaveBeenCalled()
   })
 
@@ -58,5 +58,14 @@ describe(authMiddleware.name, () => {
     expect(next).toHaveBeenCalled()
     expect(ctx.reply).not.toHaveBeenCalled()
     expect(ctx.user).toBeNull()
+  })
+
+  it('should reply and stop if from.id is falsy', async () => {
+    ctx.from = { id: 0 } as any
+
+    await authMiddleware(ctx, next)
+
+    expect(ctx.reply).toHaveBeenCalledWith('access_denied')
+    expect(next).not.toHaveBeenCalled()
   })
 })

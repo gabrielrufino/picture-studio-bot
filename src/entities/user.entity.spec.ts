@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { LanguageEnum } from '../enums/language.enum'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
+import { LanguageEnum } from '@/enums/language.enum'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
 import { UserEntity } from './user.entity'
 
 describe(UserEntity.name, () => {

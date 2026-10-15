@@ -1,7 +1,9 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
+import { CommandEnum } from '@/enums/command.enum'
+import { InvalidFileError } from '@/errors/invalid-file.error'
+import { LimitExceededError } from '@/errors/limit-exceeded.error'
 import { CropHandler } from './crop.handler'
 
 describe(CropHandler.name, () => {
@@ -54,10 +56,36 @@ describe(CropHandler.name, () => {
       expect(ctx.reply).toHaveBeenCalledWith('crop_send_dimensions')
     })
 
+    it('should return early if no photo attached', async () => {
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({} as any)
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalled()
+      expect(ctx.session.params).toBeNull()
+    })
+
     it('should throw UserNotFoundError if no user', async () => {
       ctx.user = null as any
       await handler.events['msg:photo']!(ctx)
       expect(ctx.reply).toHaveBeenCalledWith('crop_error')
+    })
+
+    it('should ignore LimitExceededError from checkLimits in msg:photo', async () => {
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new LimitExceededError())
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalledWith('crop_error')
+    })
+
+    it('should ignore InvalidFileError from checkLimits in msg:photo', async () => {
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new InvalidFileError())
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalledWith('crop_error')
+    })
+
+    it('should log and reply on unexpected error in msg:photo', async () => {
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new Error('Unexpected'))
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).toHaveBeenCalledWith('crop_error')
+      expect((handler as any).logger.error).toHaveBeenCalled()
     })
   })
 })

@@ -1,10 +1,10 @@
 import type { NextFunction } from 'grammy'
-import type { CustomContext } from '../types/custom-context.type'
-import { logger } from '../config/logger'
-import { EventEntity } from '../entities/event.entity'
-import { CommandEnum } from '../enums/command.enum'
-import { EventEnum } from '../enums/event.enum'
-import { eventRepository } from '../repositories'
+import type { CustomContext } from '@/types/custom-context.type'
+import { logger } from '@/config/logger'
+import { EventEntity } from '@/entities/event.entity'
+import { CommandEnum } from '@/enums/command.enum'
+import { EventEnum } from '@/enums/event.enum'
+import { eventRepository } from '@/repositories'
 
 function buildEventMaps() {
   const command = new Map<string, EventEnum>()

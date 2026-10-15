@@ -1,9 +1,9 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { InlineKeyboard } from 'grammy'
-import { CommandEnum } from '../enums/command.enum'
-import { LanguageEnum } from '../enums/language.enum'
-import { locales } from '../middlewares/i18n.middleware'
+import { CommandEnum } from '@/enums/command.enum'
+import { LanguageEnum } from '@/enums/language.enum'
+import { locales } from '@/middlewares/i18n.middleware'
 import { BaseHandler } from './base.handler'
 
 const ALLOWED_LANGUAGES = new Set<string>(Object.values(LanguageEnum))

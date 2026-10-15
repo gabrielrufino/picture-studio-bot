@@ -1,6 +1,6 @@
 import type { NextFunction } from 'grammy'
-import type { CustomContext } from '../types/custom-context.type'
-import { configurationRepository } from '../repositories'
+import type { CustomContext } from '@/types/custom-context.type'
+import { configurationRepository } from '@/repositories'
 
 export function clearMaintenanceCache() {
   configurationRepository.clearCache()

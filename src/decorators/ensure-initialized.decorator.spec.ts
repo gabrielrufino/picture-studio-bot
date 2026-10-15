@@ -1,7 +1,7 @@
 import type { Db, Document } from 'mongodb'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BaseRepository } from '../repositories/base.repository'
+import { BaseRepository } from '@/repositories/base.repository'
 import { EnsureInitialized } from './ensure-initialized.decorator'
 
 interface MockEntity extends Document {
