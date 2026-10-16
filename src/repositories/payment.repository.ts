@@ -1,6 +1,6 @@
 import type { Db } from 'mongodb'
-import type { PaymentEntity } from '../entities/payment.entity'
-import { CurrencyEnum } from '../enums/currency.enum'
+import type { PaymentEntity } from '@/entities/payment.entity'
+import { CurrencyEnum } from '@/enums/currency.enum'
 import { BaseRepository } from './base.repository'
 
 export class PaymentRepository extends BaseRepository<PaymentEntity> {

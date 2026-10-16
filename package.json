@@ -1,13 +1,15 @@
 {
   "name": "@gabrielrufino/picture-studio-bot",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "packageManager": "pnpm@10.32.1",
+  "description": "A Telegram bot for processing and manipulating images",
   "author": "Gabriel Rufino <contato@gabrielrufino.com>",
   "license": "UNLICENSED",
   "main": "dist/index.cjs",
   "scripts": {
     "build": "tsdown src/index.ts --format cjs",
+    "prebuild": "pnpm run build:check",
     "build:check": "tsc --noEmit",
     "build:watch": "tsdown src/index.ts --watch",
     "lint": "eslint ./src",
@@ -52,7 +54,7 @@
     "tsdown": "0.22.14",
     "tsx": "4.23.11",
     "typescript": "5.9.3",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "4.1.10"
-  },
-  "description": "A Telegram bot for processing and manipulating images"
+  }
 }

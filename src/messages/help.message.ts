@@ -1,8 +1,8 @@
-import type { BaseHandler } from '../handlers/base.handler'
-import type { CustomContext } from '../types/custom-context.type'
+import type { BaseHandler } from '@/handlers/base.handler'
+import type { CustomContext } from '@/types/custom-context.type'
 import { InlineKeyboard } from 'grammy'
-import { CommandEnum } from '../enums/command.enum'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
+import { CommandEnum } from '@/enums/command.enum'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
 
 export class HelpMessage {
   private static readonly OPERATIONS = new Set<string>([

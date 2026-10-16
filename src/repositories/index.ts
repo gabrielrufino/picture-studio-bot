@@ -1,4 +1,4 @@
-import { database } from '../config/database'
+import { database } from '@/config/database'
 import { ConfigurationRepository } from './configuration.repository'
 import { EventRepository } from './event.repository'
 import { FeedbackRepository } from './feedback.repository'

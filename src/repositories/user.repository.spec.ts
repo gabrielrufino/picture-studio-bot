@@ -2,8 +2,8 @@ import { MongoClient, ObjectId } from 'mongodb'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { UserEntity } from '../entities/user.entity'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
+import { UserEntity } from '@/entities/user.entity'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
 import { UserRepository } from './user.repository'
 
 describe(UserRepository.name, () => {

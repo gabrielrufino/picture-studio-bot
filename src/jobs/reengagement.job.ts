@@ -1,9 +1,9 @@
 import { setTimeout } from 'node:timers/promises'
 import cron from 'node-cron'
-import { bot } from '../config/bot'
-import { logger } from '../config/logger'
-import { locales } from '../middlewares/i18n.middleware'
-import { userRepository } from '../repositories'
+import { bot } from '@/config/bot'
+import { logger } from '@/config/logger'
+import { locales } from '@/middlewares/i18n.middleware'
+import { userRepository } from '@/repositories'
 
 export function initReengagementJob() {
   // Weekly on Monday at 9 AM

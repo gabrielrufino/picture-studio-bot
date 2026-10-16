@@ -1,6 +1,6 @@
-import type { CustomContext } from '../types/custom-context.type'
+import type { CustomContext } from '@/types/custom-context.type'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
+import { CommandEnum } from '@/enums/command.enum'
 import { VersionHandler } from './version.handler'
 
 describe(VersionHandler.name, () => {

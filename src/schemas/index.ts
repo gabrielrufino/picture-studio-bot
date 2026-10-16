@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const CompressParamsSchema = z.object({
   file_id: z.string(),
+  paths: z.array(z.string()).optional(),
   quality: z.number().min(1).max(100).optional(),
 })
 

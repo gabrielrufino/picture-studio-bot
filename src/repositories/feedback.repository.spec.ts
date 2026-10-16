@@ -2,7 +2,7 @@ import { MongoClient, ObjectId } from 'mongodb'
 
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { FeedbackEntity } from '../entities/feedback.entity'
+import { FeedbackEntity } from '@/entities/feedback.entity'
 import { FeedbackRepository } from './feedback.repository'
 
 describe(FeedbackRepository.name, () => {

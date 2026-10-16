@@ -1,11 +1,11 @@
-import type { UserEntity } from '../entities/user.entity'
+import type { UserEntity } from '@/entities/user.entity'
 import cron from 'node-cron'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { bot } from '../config/bot'
-import { logger } from '../config/logger'
-import { LanguageEnum } from '../enums/language.enum'
-import { locales } from '../middlewares/i18n.middleware'
-import { userRepository } from '../repositories'
+import { bot } from '@/config/bot'
+import { logger } from '@/config/logger'
+import { LanguageEnum } from '@/enums/language.enum'
+import { locales } from '@/middlewares/i18n.middleware'
+import { userRepository } from '@/repositories'
 import { initReengagementJob } from './reengagement.job'
 
 vi.mock('node-cron', () => ({
@@ -34,6 +34,7 @@ vi.mock('../config/logger', () => ({
 vi.mock('../repositories', () => ({
   userRepository: {
     findInactiveUsers: vi.fn(),
+    updateById: vi.fn(),
   },
 }))
 
@@ -116,5 +117,73 @@ describe('reengagementJob', () => {
       { error, userId: 123 },
       'Failed to send re-engagement message',
     )
+  })
+
+  it('should skip users without telegram_user.id', async () => {
+    const inactiveUsers: Partial<UserEntity>[] = [
+      {
+        _id: 'user1' as any,
+        telegram_user: { id: 123 } as any,
+        language: LanguageEnum.English,
+      },
+      {
+        _id: 'user2' as any,
+        telegram_user: undefined as any,
+        language: LanguageEnum.Portuguese,
+      },
+    ]
+
+    vi.mocked(userRepository.findInactiveUsers).mockResolvedValue({
+      async* [Symbol.asyncIterator]() {
+        for (const user of inactiveUsers) {
+          yield user
+        }
+      },
+    } as any)
+
+    initReengagementJob()
+    const callback = (globalThis as any).cronCallback
+    await callback()
+
+    expect(bot.api.sendMessage).toHaveBeenCalledTimes(1)
+    expect(bot.api.sendMessage).toHaveBeenCalledWith(123, locales.en.reengagement_message, { parse_mode: 'HTML' })
+  })
+
+  it('should mark user as bot_blocked when bot was blocked by user', async () => {
+    const blockedError = { error_code: 403, message: 'bot was blocked by the user' }
+    vi.mocked(bot.api.sendMessage).mockRejectedValueOnce(blockedError)
+
+    const inactiveUsers: Partial<UserEntity>[] = [
+      {
+        _id: 'user1' as any,
+        telegram_user: { id: 123 } as any,
+        language: LanguageEnum.English,
+      },
+    ]
+
+    vi.mocked(userRepository.findInactiveUsers).mockResolvedValue({
+      async* [Symbol.asyncIterator]() {
+        for (const user of inactiveUsers) {
+          yield user
+        }
+      },
+    } as any)
+
+    initReengagementJob()
+    const callback = (globalThis as any).cronCallback
+    await callback()
+
+    expect(userRepository.updateById).toHaveBeenCalledWith('user1', { is_bot_blocked: true })
+  })
+
+  it('should log job-level error if findInactiveUsers throws', async () => {
+    const jobError = new Error('Database error')
+    vi.mocked(userRepository.findInactiveUsers).mockRejectedValueOnce(jobError)
+
+    initReengagementJob()
+    const callback = (globalThis as any).cronCallback
+    await callback()
+
+    expect(logger.error).toHaveBeenCalledWith({ error: jobError }, 'Error in re-engagement job')
   })
 })

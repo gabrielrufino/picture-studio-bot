@@ -2,7 +2,7 @@ import { MongoClient, ObjectId } from 'mongodb'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { MessageEntity } from '../entities/message.entity'
+import { MessageEntity } from '@/entities/message.entity'
 import { MessageRepository } from './message.repository'
 
 describe(MessageRepository.name, () => {

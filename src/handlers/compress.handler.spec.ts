@@ -1,12 +1,13 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
 
 import sharp from 'sharp'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { logger } from '../config/logger'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
+import { logger } from '@/config/logger'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { InvalidFileError } from '@/errors/invalid-file.error'
 import { CompressHandler } from './compress.handler'
 
 vi.mock('node:fs/promises', () => ({
@@ -109,7 +110,7 @@ describe(CompressHandler.name, () => {
         vi.mocked(sharp).mockReturnValue({
           jpeg: vi.fn().mockReturnThis(),
           toBuffer: vi.fn().mockResolvedValue(Buffer.from('this buffer is larger than 50 bytes so no reduction happens')),
-        })
+        } as any)
 
         const downloadMock = vi.fn().mockResolvedValue('/tmp/input.jpg')
         ctx.getFile = vi.fn().mockResolvedValue({ download: downloadMock })
@@ -136,6 +137,13 @@ describe(CompressHandler.name, () => {
 
         expect(ctx.reply).toHaveBeenCalledWith('free_limit_reached')
         expect(logger.error).not.toHaveBeenCalled()
+        expect(ctx.reply).not.toHaveBeenCalledWith('compress_error')
+      })
+
+      it('should return silently on InvalidFileError', async () => {
+        vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new InvalidFileError())
+        await handler.events['msg:photo']!(ctx)
+
         expect(ctx.reply).not.toHaveBeenCalledWith('compress_error')
       })
 

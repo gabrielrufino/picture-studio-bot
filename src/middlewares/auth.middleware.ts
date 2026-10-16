@@ -1,10 +1,10 @@
 import type { NextFunction } from 'grammy'
-import type { CustomContext } from '../types/custom-context.type'
-import { userRepository } from '../repositories'
+import type { CustomContext } from '@/types/custom-context.type'
+import { userRepository } from '@/repositories'
 
 export async function authMiddleware(ctx: CustomContext, next: NextFunction) {
   if (!ctx.from?.id) {
-    await ctx.reply('Unable to identify you. Access denied.')
+    await ctx.reply(ctx.t('access_denied'))
     return
   }
 

@@ -1,10 +1,12 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { Buffer } from 'node:buffer'
+import fs from 'node:fs/promises'
 import { InlineKeyboard } from 'grammy'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
-import { LimitExceededError } from '../errors/limit-exceeded.error'
+import { CommandEnum } from '@/enums/command.enum'
+import { InvalidFileError } from '@/errors/invalid-file.error'
+import { LimitExceededError } from '@/errors/limit-exceeded.error'
 import { ConvertHandler } from './convert.handler'
 
 vi.mock('node:fs/promises', () => ({
@@ -58,7 +60,7 @@ describe(ConvertHandler.name, () => {
       user: { id: 1 },
       from: { id: 1 },
       reply: vi.fn().mockResolvedValue(undefined),
-      replyWithPhoto: vi.fn().mockResolvedValue(undefined),
+      replyWithDocument: vi.fn().mockResolvedValue(undefined),
       editMessageText: vi.fn().mockResolvedValue(undefined),
       answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
       api: {
@@ -108,6 +110,18 @@ describe(ConvertHandler.name, () => {
       await handler.events['msg:photo']!(ctx)
       expect(ctx.reply).toHaveBeenCalledWith('convert_error')
     })
+
+    it('should return silently on LimitExceededError in msg:photo', async () => {
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new LimitExceededError())
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalledWith('convert_error')
+    })
+
+    it('should return silently on InvalidFileError in msg:photo', async () => {
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new InvalidFileError())
+      await handler.events['msg:photo']!(ctx)
+      expect(ctx.reply).not.toHaveBeenCalledWith('convert_error')
+    })
   })
 
   describe('callback_query', () => {
@@ -117,7 +131,7 @@ describe(ConvertHandler.name, () => {
 
       expect(ctx.answerCallbackQuery).toHaveBeenCalled()
       expect(ctx.editMessageText).toHaveBeenCalledWith('convert_converting')
-      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(
+      expect(ctx.replyWithDocument).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'converted.jpg', path: expect.stringMatching(/convert-[a-f0-9-]+\.jpg$/) }),
         { caption: 'convert_success' },
       )
@@ -140,6 +154,32 @@ describe(ConvertHandler.name, () => {
       await handler.events.callback_query!(ctx)
 
       expect(ctx.reply).not.toHaveBeenCalledWith('convert_error')
+    })
+
+    it('should reply error on unexpected error in callback_query', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new Error('Unexpected'))
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('convert_error')
+      expect((handler as any).logger.error).toHaveBeenCalled()
+    })
+
+    it('should handle fs.rm errors in finally block', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      const err1 = new Error('rm input error')
+      const err2 = new Error('rm output error')
+
+      vi.mocked(fs.rm).mockRejectedValueOnce(err1).mockRejectedValueOnce(err2)
+
+      await handler.events.callback_query!(ctx)
+
+      expect((handler as any).logger.error).toHaveBeenCalledWith({ error: err1, path: '/tmp/input.jpg' }, 'Failed to remove input file.')
+      expect((handler as any).logger.error).toHaveBeenCalledWith(
+        { error: err2, path: expect.stringMatching(/convert-/) },
+        'Failed to remove output file.',
+      )
     })
   })
 })

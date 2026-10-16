@@ -1,8 +1,8 @@
 import type { Db, Filter } from 'mongodb'
-import { EnsureInitialized } from '../decorators/ensure-initialized.decorator'
-import { UserEntity } from '../entities/user.entity'
-import { LanguageEnum } from '../enums/language.enum'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
+import { EnsureInitialized } from '@/decorators/ensure-initialized.decorator'
+import { UserEntity } from '@/entities/user.entity'
+import { LanguageEnum } from '@/enums/language.enum'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
 import { BaseRepository } from './base.repository'
 
 export class UserRepository extends BaseRepository<UserEntity> {

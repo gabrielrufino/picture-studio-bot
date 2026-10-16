@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { logger } from '../config/logger'
+import { logger } from '@/config/logger'
 import { loggerMiddleware } from './logger.middleware'
 
 vi.mock('../config/logger', () => ({

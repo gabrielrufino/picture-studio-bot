@@ -1,9 +1,9 @@
-import type { UserEntity } from '../entities/user.entity'
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserEntity } from '@/entities/user.entity'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
-import { WelcomeMessage } from '../messages/welcome.message'
+import { CommandEnum } from '@/enums/command.enum'
+import { WelcomeMessage } from '@/messages/welcome.message'
 import { StartHandler } from './start.handler'
 
 describe(StartHandler.name, () => {
@@ -47,6 +47,30 @@ describe(StartHandler.name, () => {
       expect(userRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           telegram_user: ctx.from,
+        }),
+      )
+    })
+
+    it('should create a new user with supported language code', async () => {
+      const ctx: any = {
+        t: (key: string) => key,
+        from: {
+          id: 12345,
+          language_code: 'pt',
+        },
+        session: {
+          command: null,
+          params: null,
+        },
+        reply: vi.fn(),
+      } as unknown as CustomContext
+
+      await handler.onCommand(ctx)
+
+      expect(userRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegram_user: ctx.from,
+          language: 'pt',
         }),
       )
     })

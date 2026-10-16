@@ -1,12 +1,12 @@
-import type { UserEntity } from '../entities/user.entity'
-import type { ConfigurationRepository } from '../repositories/configuration.repository'
-import type { PaymentRepository } from '../repositories/payment.repository'
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserEntity } from '@/entities/user.entity'
+import type { ConfigurationRepository } from '@/repositories/configuration.repository'
+import type { PaymentRepository } from '@/repositories/payment.repository'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { CommandEnum } from '../enums/command.enum'
-import { CurrencyEnum } from '../enums/currency.enum'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
+import { CommandEnum } from '@/enums/command.enum'
+import { CurrencyEnum } from '@/enums/currency.enum'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
 import { ProHandler } from './pro.handler'
 
 describe(ProHandler.name, () => {
@@ -72,6 +72,20 @@ describe(ProHandler.name, () => {
       await handler.onCommand(ctx)
 
       expect(ctx.reply).toHaveBeenCalledWith(`Active since ${startDate.toLocaleDateString()}`, { parse_mode: 'HTML' })
+      expect(ctx.session.command).toBeNull()
+    })
+
+    it('should show dash when plan_started_at is null', async () => {
+      const existingUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: null })
+      vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)
+
+      const ctx = createMockContext({
+        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+      })
+
+      await handler.onCommand(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('Active since -', { parse_mode: 'HTML' })
       expect(ctx.session.command).toBeNull()
     })
 

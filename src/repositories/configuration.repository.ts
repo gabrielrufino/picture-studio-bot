@@ -1,6 +1,6 @@
 import type { Db } from 'mongodb'
-import type { ConfigurationEntity } from '../entities/configuration.entity'
-import { EnsureInitialized } from '../decorators/ensure-initialized.decorator'
+import type { ConfigurationEntity } from '@/entities/configuration.entity'
+import { EnsureInitialized } from '@/decorators/ensure-initialized.decorator'
 import { BaseRepository } from './base.repository'
 
 const GLOBAL_CONFIG_ID = 'global_config' as const

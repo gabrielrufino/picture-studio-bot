@@ -1,8 +1,8 @@
 import { MongoClient, ObjectId } from 'mongodb'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { PaymentEntity } from '../entities/payment.entity'
-import { CurrencyEnum } from '../enums/currency.enum'
+import { PaymentEntity } from '@/entities/payment.entity'
+import { CurrencyEnum } from '@/enums/currency.enum'
 import { PaymentRepository } from './payment.repository'
 
 describe(PaymentRepository.name, () => {

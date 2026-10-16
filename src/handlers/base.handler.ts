@@ -1,14 +1,14 @@
 import type { FilterQuery } from 'grammy'
 import type { z } from 'zod'
-import type { CommandEnum } from '../enums/command.enum'
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { CommandEnum } from '@/enums/command.enum'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import fs from 'node:fs/promises'
-import { DAILY_LIMITS, MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '../config/constants'
-import { logger } from '../config/logger'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
-import { LimitExceededError } from '../errors/limit-exceeded.error'
-import { SessionValidationError } from '../errors/session-validation.error'
+import { DAILY_LIMITS, MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
+import { logger } from '@/config/logger'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { LimitExceededError } from '@/errors/limit-exceeded.error'
+import { SessionValidationError } from '@/errors/session-validation.error'
 
 export abstract class BaseHandler {
   public abstract readonly command: CommandEnum
@@ -136,7 +136,7 @@ export abstract class BaseHandler {
     }
 
     if ('paths' in params && Array.isArray(params.paths)) {
-      paths.push(...params.paths.filter((p): p is string => typeof p === 'string'))
+      paths.push(...params.paths.filter((p: unknown): p is string => typeof p === 'string'))
     }
 
     await Promise.all(

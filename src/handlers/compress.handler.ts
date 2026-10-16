@@ -1,15 +1,16 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CompressParams } from '@/schemas'
+import type { CustomContext } from '@/types/custom-context.type'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import { join } from 'node:path'
 import { InputFile } from 'grammy'
 import sharp from 'sharp'
-import { CommandEnum } from '../enums/command.enum'
-import { InvalidFileError } from '../errors/invalid-file.error'
-import { LimitExceededError } from '../errors/limit-exceeded.error'
-import { UserNotFoundError } from '../errors/user-not-found.error'
+import { CommandEnum } from '@/enums/command.enum'
+import { InvalidFileError } from '@/errors/invalid-file.error'
+import { LimitExceededError } from '@/errors/limit-exceeded.error'
+import { UserNotFoundError } from '@/errors/user-not-found.error'
 import { BaseHandler } from './base.handler'
 
 export class CompressHandler extends BaseHandler {
@@ -30,6 +31,8 @@ export class CompressHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
+        if (!ctx.message?.photo)
+          return
         const photo = ctx.message.photo[ctx.message.photo.length - 1]
         const fileSize = photo.file_size ?? 0
         await this.checkLimits(ctx, { fileSize })
@@ -44,7 +47,7 @@ export class CompressHandler extends BaseHandler {
 
           await ctx.reply(ctx.t('compress_compressing'))
 
-          const quality = ctx.session.params?.quality ?? 80
+          const quality = (ctx.session.params as CompressParams)?.quality ?? 80
 
           const buffer = await sharp(inputPath)
             .jpeg({ quality })
@@ -77,7 +80,7 @@ export class CompressHandler extends BaseHandler {
       finally {
         ctx.session.params = {
           paths: [inputPath, outputPath].filter(Boolean) as string[],
-        }
+        } as CompressParams
         await this.resetSession(ctx)
       }
     },

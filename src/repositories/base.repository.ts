@@ -1,5 +1,5 @@
 import type { Collection, CreateCollectionOptions, Db, Document, ObjectId } from 'mongodb'
-import { EnsureInitialized } from '../decorators/ensure-initialized.decorator'
+import { EnsureInitialized } from '@/decorators/ensure-initialized.decorator'
 
 export abstract class BaseRepository<T extends Document & { updated_at: Date }> {
   private readonly database: Db

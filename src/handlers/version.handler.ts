@@ -1,7 +1,7 @@
-import type { CustomContext } from '../types/custom-context.type'
+import type { CustomContext } from '@/types/custom-context.type'
+import { CommandEnum } from '@/enums/command.enum'
+import { formatString } from '@/utils/format.util'
 import { version } from '../../package.json'
-import { CommandEnum } from '../enums/command.enum'
-import { formatString } from '../utils/format.util'
 import { BaseHandler } from './base.handler'
 
 export class VersionHandler extends BaseHandler {

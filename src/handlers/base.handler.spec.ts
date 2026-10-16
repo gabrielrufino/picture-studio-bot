@@ -1,11 +1,11 @@
-import type { UserRepository } from '../repositories/user.repository'
-import type { CustomContext } from '../types/custom-context.type'
+import type { UserRepository } from '@/repositories/user.repository'
+import type { CustomContext } from '@/types/custom-context.type'
 import fs from 'node:fs/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { DAILY_LIMITS, MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '../config/constants'
-import { CommandEnum } from '../enums/command.enum'
-import { PlanTypeEnum } from '../enums/plan-type.enum'
-import { LimitExceededError } from '../errors/limit-exceeded.error'
+import { DAILY_LIMITS, MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
+import { CommandEnum } from '@/enums/command.enum'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { LimitExceededError } from '@/errors/limit-exceeded.error'
 import { BaseHandler } from './base.handler'
 
 describe(BaseHandler.name, () => {
@@ -249,6 +249,19 @@ describe(BaseHandler.name, () => {
         handler.checkLimits(ctx, { fileSize: MAX_PRO_FILE_SIZE + 1 }),
       ).rejects.toThrow(LimitExceededError)
       expect(ctx.reply).toHaveBeenCalledWith('pro_limit_reached')
+    })
+
+    it('should not throw if fileSize is not provided', async () => {
+      const handler = new TestHandler()
+      const ctx: any = {
+        t: (key: string) => key,
+        user: { plan_type: PlanTypeEnum.Free },
+        reply: vi.fn(),
+      } as unknown as CustomContext
+
+      await expect(
+        handler.checkLimits(ctx, {}),
+      ).resolves.not.toThrow()
     })
   })
 

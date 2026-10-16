@@ -1,8 +1,8 @@
 import { MongoClient, MongoServerError } from 'mongodb'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { EventEntity } from '../entities/event.entity'
-import { EventEnum } from '../enums/event.enum'
+import { EventEntity } from '@/entities/event.entity'
+import { EventEnum } from '@/enums/event.enum'
 import { EventRepository } from './event.repository'
 
 describe(EventRepository.name, () => {

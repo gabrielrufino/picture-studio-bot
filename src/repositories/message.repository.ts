@@ -1,5 +1,5 @@
 import type { Db } from 'mongodb'
-import type { MessageEntity } from '../entities/message.entity'
+import type { MessageEntity } from '@/entities/message.entity'
 import { BaseRepository } from './base.repository'
 
 export class MessageRepository extends BaseRepository<MessageEntity> {

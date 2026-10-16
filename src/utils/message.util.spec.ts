@@ -58,4 +58,31 @@ describe(splitMessage.name, () => {
 
     expect(chunks).toHaveLength(0)
   })
+
+  it('should handle a single line exactly at maxLength', () => {
+    const line = 'A'.repeat(4000)
+    const chunks = splitMessage(line, 4000)
+
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0]).toBe(line)
+  })
+
+  it('should handle multiple lines that fit within maxLength', () => {
+    const text = `line1\nline2\nline3`
+    const chunks = splitMessage(text, 4000)
+
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0]).toBe('line1\nline2\nline3')
+  })
+
+  it('should split multiple long lines correctly', () => {
+    const text = `${'A'.repeat(4500)}\n${'B'.repeat(4500)}`
+    const chunks = splitMessage(text, 4000)
+
+    expect(chunks).toHaveLength(4)
+    expect(chunks[0]).toBe('A'.repeat(4000))
+    expect(chunks[1]).toBe('A'.repeat(500))
+    expect(chunks[2]).toBe('B'.repeat(4000))
+    expect(chunks[3]).toBe('B'.repeat(500))
+  })
 })

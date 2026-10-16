@@ -1,5 +1,5 @@
 import type { BaseHandler } from './base.handler'
-import { configurationRepository, feedbackRepository, paymentRepository, userRepository } from '../repositories'
+import { configurationRepository, feedbackRepository, paymentRepository, userRepository } from '@/repositories'
 import { CompressHandler } from './compress.handler'
 import { ConvertHandler } from './convert.handler'
 import { CropHandler } from './crop.handler'
