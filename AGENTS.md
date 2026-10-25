@@ -39,7 +39,7 @@ Baseline: lint, typecheck, and the full test suite pass.
 ## Testing conventions
 
 - `describe` blocks use `ClassName.name` and `ClassName.prototype.method.name` (for example `UserRepository.prototype.incrementUsage.name`), not string literals.
-- Repository specs create an isolated `mongodb-memory-server` per file, with their own DB name and cleanup in `afterAll`.
+- Repository specs share a single `mongodb-memory-server` started by the Vitest global setup (`src/test/mongodb.global-setup.ts`, which exports `MONGODB_CONNECTION_STRING`). Use `connectToTestDatabase(name)` from `src/test/mongodb.ts` to get the client and a per-file database (`pdf_studio_test_<name>`), and close the client in `afterAll`.
 - Handler specs mock `sharp`, `node:fs/promises`, `node:os`, and grammy's `InputFile`; follow that pattern for new handlers. Never import `src/index.ts` in tests.
 
 ## Documentation
