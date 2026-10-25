@@ -25,6 +25,7 @@ vi.mock('node:os', () => ({
 
 vi.mock('sharp', () => ({
   default: vi.fn().mockReturnValue({
+    metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
     rotate: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('rotated image data')),
   }),

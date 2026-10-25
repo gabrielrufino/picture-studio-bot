@@ -24,6 +24,7 @@ vi.mock('node:os', () => ({
 
 vi.mock('sharp', () => ({
   default: vi.fn().mockReturnValue({
+    metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
     resize: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('resized image data')),
   }),
@@ -157,6 +158,17 @@ describe(ResizeHandler.name, () => {
       expect(ctx.session.params).toBeNull()
     })
 
+    it('should show custom dimensions prompt for resize_custom callback', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      ctx.callbackQuery!.data = 'resize_custom'
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.answerCallbackQuery).toHaveBeenCalled()
+      expect(ctx.reply).toHaveBeenCalledWith('resize_custom_dimensions')
+      expect(ctx.editMessageText).not.toHaveBeenCalled()
+    })
+
     it('should ignore non-resize callbacks', async () => {
       ctx.callbackQuery!.data = 'other'
       await handler.events.callback_query!(ctx)
@@ -200,6 +212,107 @@ describe(ResizeHandler.name, () => {
       expect(fs.rm).toHaveBeenCalledWith('/tmp/input.jpg', { force: true })
       expect(ctx.session.command).toBeNull()
       expect(ctx.session.params).toBeNull()
+    })
+  })
+
+  describe('message', () => {
+    it('should resize image when valid custom dimensions are provided', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '800x600' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('resize_resizing')
+      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'resized.jpg' }),
+        { caption: 'resize_success' },
+      )
+      expect(sharp).toHaveBeenCalledWith('/tmp/input.jpg')
+      expect(sharp().resize).toHaveBeenCalledWith(800, 600)
+      expect(userRepository.incrementUsage).toHaveBeenCalledWith(1, 3)
+      expect(ctx.session.command).toBeNull()
+      expect(ctx.session.params).toBeNull()
+    })
+
+    it('should reply invalid dimensions for non-matching text', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'invalid' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('resize_invalid_dimensions')
+      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+    })
+
+    it('should reply invalid dimensions for zero values', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '0x0' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('resize_invalid_dimensions')
+      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+    })
+
+    it('should reply invalid dimensions for out-of-bounds values', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '5000x5000' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('resize_invalid_dimensions')
+      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+    })
+
+    it('should return early if no text in message', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({} as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).not.toHaveBeenCalled()
+    })
+
+    it('should throw UserNotFoundError if no user', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '800x600' } as any)
+      ctx.user = null as any
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('resize_error')
+    })
+
+    it('should ignore LimitExceededError gracefully', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '800x600' } as any)
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new LimitExceededError())
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).not.toHaveBeenCalledWith('resize_error')
+    })
+
+    it('should reply invalid file message on InvalidFileError', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '800x600' } as any)
+      vi.spyOn(handler as any, 'validateImageFile').mockRejectedValueOnce(new InvalidFileError())
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('resize_invalid_file')
+      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+    })
+
+    it('should reply error on unexpected error', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '800x600' } as any)
+      vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new Error('Unexpected'))
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('resize_error')
+      expect((handler as any).logger.error).toHaveBeenCalled()
     })
   })
 })

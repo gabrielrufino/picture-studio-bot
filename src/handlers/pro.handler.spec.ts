@@ -61,7 +61,8 @@ describe(ProHandler.name, () => {
 
   describe(ProHandler.prototype.onCommand.name, () => {
     it('should show subscription info if user is already PRO', async () => {
-      const startDate = new Date('2026-01-01')
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 10)
       const existingUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: startDate })
       vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)
 

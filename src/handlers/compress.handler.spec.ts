@@ -26,6 +26,7 @@ vi.mock('node:os', () => ({
 
 vi.mock('sharp', () => ({
   default: vi.fn().mockReturnValue({
+    metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
     jpeg: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('compressed image data')),
   }),
@@ -108,6 +109,7 @@ describe(CompressHandler.name, () => {
       it('should reply with no_reduction message when compressed file is not smaller', async () => {
         vi.mocked(fs.stat).mockResolvedValue({ size: 50 } as any)
         vi.mocked(sharp).mockReturnValue({
+          metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
           jpeg: vi.fn().mockReturnThis(),
           toBuffer: vi.fn().mockResolvedValue(Buffer.from('this buffer is larger than 50 bytes so no reduction happens')),
         } as any)

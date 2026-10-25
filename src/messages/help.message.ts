@@ -9,6 +9,7 @@ export class HelpMessage {
     CommandEnum.Compress,
     CommandEnum.Convert,
     CommandEnum.Crop,
+    CommandEnum.Info,
     CommandEnum.Resize,
     CommandEnum.Rotate,
     CommandEnum.Language,

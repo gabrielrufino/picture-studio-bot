@@ -45,6 +45,8 @@ export class CompressHandler extends BaseHandler {
             throw new Error('Failed to download file')
           }
 
+          await this.validateImageFile(inputPath)
+
           await ctx.reply(ctx.t('compress_compressing'))
 
           const quality = (ctx.session.params as CompressParams)?.quality ?? 80

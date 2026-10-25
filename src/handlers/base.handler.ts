@@ -1,12 +1,15 @@
 import type { FilterQuery } from 'grammy'
 import type { z } from 'zod'
+import type { Metadata } from 'sharp'
 import type { CommandEnum } from '@/enums/command.enum'
 import type { UserRepository } from '@/repositories/user.repository'
 import type { CustomContext } from '@/types/custom-context.type'
 import fs from 'node:fs/promises'
+import sharp from 'sharp'
 import { DAILY_LIMITS, MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { logger } from '@/config/logger'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { InvalidFileError } from '@/errors/invalid-file.error'
 import { LimitExceededError } from '@/errors/limit-exceeded.error'
 import { SessionValidationError } from '@/errors/session-validation.error'
 
@@ -119,6 +122,15 @@ export abstract class BaseHandler {
         await this.decrementUsage(ctx, userRepository)
       }
       throw error
+    }
+  }
+
+  protected async validateImageFile(filePath: string): Promise<Metadata> {
+    try {
+      return await sharp(filePath).metadata()
+    }
+    catch {
+      throw new InvalidFileError()
     }
   }
 

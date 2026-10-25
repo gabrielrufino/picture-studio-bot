@@ -5,6 +5,7 @@ import { ConvertHandler } from './convert.handler'
 import { CropHandler } from './crop.handler'
 import { FeedbackHandler } from './feedback.handler'
 import { HelpHandler } from './help.handler'
+import { InfoHandler } from './info.handler'
 import { LanguageHandler } from './language.handler'
 import { ProHandler } from './pro.handler'
 import { ResizeHandler } from './resize.handler'
@@ -17,6 +18,7 @@ const coreHandlers: Array<BaseHandler> = [
   new ConvertHandler(userRepository),
   new CropHandler(userRepository),
   new FeedbackHandler(feedbackRepository),
+  new InfoHandler(userRepository),
   new LanguageHandler(userRepository),
   new ProHandler(userRepository, paymentRepository, configurationRepository),
   new ResizeHandler(userRepository),

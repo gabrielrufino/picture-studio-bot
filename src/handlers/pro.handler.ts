@@ -60,6 +60,18 @@ export class ProHandler extends BaseHandler {
     const user = await this.userRepository.findByTelegramId(userId)
 
     if (user?.plan_type === PlanTypeEnum.Pro) {
+      if (user.plan_started_at) {
+        const oneMonthAgo = new Date()
+        oneMonthAgo.setDate(oneMonthAgo.getDate() - 30)
+
+        if (user.plan_started_at < oneMonthAgo) {
+          await this.userRepository.updateById(user._id, { plan_type: PlanTypeEnum.Free, plan_started_at: null })
+          await ctx.reply(ctx.t('pro_expired'))
+          await this.resetSession(ctx)
+          return
+        }
+      }
+
       const locale = ctx.session?.language || user.language || 'en'
       const date = user.plan_started_at ? new Date(user.plan_started_at).toLocaleDateString(locale) : '-'
       await ctx.reply(ctx.t('subscription_info').replace('{date}', date), { parse_mode: 'HTML' })
