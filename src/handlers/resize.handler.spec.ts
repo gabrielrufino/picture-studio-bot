@@ -272,15 +272,15 @@ describe(ResizeHandler.name, () => {
       expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
-    it('should return early if no text in message', async () => {
+    it('should reset the session if the message has no text', async () => {
       ctx.session.params = { file_id: 'photo-id' }
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({} as any)
 
       await handler.events.message!(ctx)
 
       expect(ctx.reply).not.toHaveBeenCalled()
-      expect(ctx.session.command).toBe(CommandEnum.Resize)
-      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
+      expect(ctx.session.command).toBeNull()
+      expect(ctx.session.params).toBeNull()
     })
 
     it('should throw UserNotFoundError if no user', async () => {

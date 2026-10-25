@@ -156,8 +156,10 @@ export class ResizeHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
-        if (!ctx.message?.text)
+        if (!ctx.message?.text) {
+          shouldResetSession = true
           return
+        }
 
         const match = ctx.message.text.match(/^(\d+)x(\d+)$/)
         if (!match) {
