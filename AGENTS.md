@@ -42,6 +42,12 @@ Baseline: lint, typecheck, and the full test suite pass.
 - Repository specs create an isolated `mongodb-memory-server` per file, with their own DB name and cleanup in `afterAll`.
 - Handler specs mock `sharp`, `node:fs/promises`, `node:os`, and grammy's `InputFile`; follow that pattern for new handlers. Never import `src/index.ts` in tests.
 
+## Documentation
+
+- `docs/watermark.md` is the business and technical reference for the watermark feature.
+- Every change must include a review of `docs/watermark.md`: if the change touches behavior, flow, limits, messages, schemas, callbacks, formats, algorithm, errors, or tests described there, update the document in the same change. Stale documentation is a bug.
+- When limits or user-facing behavior change, update the relevant docs in the same change: `README.md` for global limits and `docs/watermark.md` for watermark-specific limits and behavior, plus the three locale files.
+
 ## CI/CD
 
 - `.github/workflows/ci.yml` delegates to `actalog/node-ci@v3` on pull requests and pushes.
