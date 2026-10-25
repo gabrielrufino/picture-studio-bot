@@ -1,6 +1,7 @@
 import type { UserRepository } from '@/repositories/user.repository'
 import type { CustomContext } from '@/types/custom-context.type'
 import { Buffer } from 'node:buffer'
+import sharp from 'sharp'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CommandEnum } from '@/enums/command.enum'
 import { InvalidFileError } from '@/errors/invalid-file.error'
@@ -146,7 +147,16 @@ describe(CropHandler.name, () => {
       expect(ctx.session.params).toBeNull()
     })
 
-    it('should reply invalid dimensions for non-matching text', async () => {
+    it('should crop the centered area of the image', async () => {
+      ctx.session.params = { file_id: 'photo-id' }
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '800x600' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(sharp().extract).toHaveBeenCalledWith({ width: 800, height: 600, left: 100, top: 100 })
+    })
+
+    it('should keep the session when dimensions do not match', async () => {
       ctx.session.params = { file_id: 'photo-id' }
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'invalid' } as any)
 
@@ -154,6 +164,8 @@ describe(CropHandler.name, () => {
 
       expect(ctx.reply).toHaveBeenCalledWith('crop_invalid_dimensions')
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Crop)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should reply invalid dimensions for zero values', async () => {
@@ -164,6 +176,8 @@ describe(CropHandler.name, () => {
 
       expect(ctx.reply).toHaveBeenCalledWith('crop_invalid_dimensions')
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Crop)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should reply invalid dimensions for out-of-bounds values', async () => {
@@ -174,6 +188,8 @@ describe(CropHandler.name, () => {
 
       expect(ctx.reply).toHaveBeenCalledWith('crop_invalid_dimensions')
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Crop)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should return early if no text in message', async () => {
@@ -183,6 +199,8 @@ describe(CropHandler.name, () => {
       await handler.events.message!(ctx)
 
       expect(ctx.reply).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Crop)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should throw UserNotFoundError if no user', async () => {

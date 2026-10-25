@@ -60,6 +60,7 @@ export class ResizeHandler extends BaseHandler {
     'callback_query': async (ctx: CustomContext) => {
       let inputPath: string | undefined
       let outputPath: string | undefined
+      let shouldResetSession = true
 
       try {
         if (!ctx.user) {
@@ -71,6 +72,7 @@ export class ResizeHandler extends BaseHandler {
         if (data === 'resize_custom') {
           await ctx.answerCallbackQuery()
           await ctx.reply(ctx.t('resize_custom_dimensions'))
+          shouldResetSession = false
           return
         }
 
@@ -138,15 +140,19 @@ export class ResizeHandler extends BaseHandler {
             this.logger.error({ error, path: outputPath }, 'Failed to remove output file.'),
           )
         }
-        await this.resetSession(ctx)
+        if (shouldResetSession) {
+          await this.resetSession(ctx)
+        }
       }
     },
     'message': async (ctx: CustomContext) => {
       let inputPath: string | undefined
       let outputPath: string | undefined
+      let shouldResetSession = false
 
       try {
         if (!ctx.user) {
+          shouldResetSession = true
           throw new UserNotFoundError()
         }
 
@@ -166,6 +172,8 @@ export class ResizeHandler extends BaseHandler {
           await ctx.reply(ctx.t('resize_invalid_dimensions'))
           return
         }
+
+        shouldResetSession = true
 
         const { file_id: fileId } = this.validateParams(ResizeParamsSchema, ctx.session.params)
 
@@ -225,7 +233,9 @@ export class ResizeHandler extends BaseHandler {
             this.logger.error({ error, path: outputPath }, 'Failed to remove output file.'),
           )
         }
-        await this.resetSession(ctx)
+        if (shouldResetSession) {
+          await this.resetSession(ctx)
+        }
       }
     },
   }

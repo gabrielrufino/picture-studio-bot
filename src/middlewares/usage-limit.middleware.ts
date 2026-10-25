@@ -6,6 +6,7 @@ import { UserEntity } from '@/entities/user.entity'
 import { LanguageEnum } from '@/enums/language.enum'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
 import { userRepository } from '@/repositories'
+import { isPlanExpired } from '@/utils/plan.util'
 
 export function usageLimitMiddleware(handler: BaseHandler) {
   return async (ctx: CustomContext, next: NextFunction) => {
@@ -29,14 +30,9 @@ export function usageLimitMiddleware(handler: BaseHandler) {
         language: ctx.session?.language || LanguageEnum.English,
       }))
     }
-    else if (user.plan_type === PlanTypeEnum.Pro && user.plan_started_at) {
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setDate(oneMonthAgo.getDate() - 30) // 30 days expiration
-
-      if (user.plan_started_at < oneMonthAgo) {
-        await userRepository.updateById(user._id, { plan_type: PlanTypeEnum.Free, plan_started_at: null })
-        user.plan_type = PlanTypeEnum.Free
-      }
+    else if (user.plan_type === PlanTypeEnum.Pro && isPlanExpired(user.plan_started_at)) {
+      await userRepository.updateById(user._id, { plan_type: PlanTypeEnum.Free, plan_started_at: null })
+      user.plan_type = PlanTypeEnum.Free
     }
 
     ctx.user = user

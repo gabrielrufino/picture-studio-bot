@@ -113,12 +113,15 @@ describe(InfoHandler.name, () => {
         expect(ctx.reply).not.toHaveBeenCalledWith('info_error')
       })
 
-      it('should return silently on InvalidFileError in validateImageFile', async () => {
+      it('should reply invalid file message on InvalidFileError in validateImageFile', async () => {
         vi.spyOn(handler as any, 'validateImageFile').mockRejectedValueOnce(new InvalidFileError())
 
         await handler.events['msg:photo']!(ctx)
 
+        expect(ctx.reply).toHaveBeenCalledWith('info_invalid_file')
         expect(ctx.reply).not.toHaveBeenCalledWith('info_error')
+        expect(userRepository.incrementUsage).toHaveBeenCalled()
+        expect(userRepository.decrementUsage).toHaveBeenCalled()
       })
 
       it('should reply error on unexpected error', async () => {

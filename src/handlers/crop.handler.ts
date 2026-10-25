@@ -52,9 +52,11 @@ export class CropHandler extends BaseHandler {
     'message': async (ctx: CustomContext) => {
       let inputPath: string | undefined
       let outputPath: string | undefined
+      let shouldResetSession = false
 
       try {
         if (!ctx.user) {
+          shouldResetSession = true
           throw new UserNotFoundError()
         }
 
@@ -74,6 +76,8 @@ export class CropHandler extends BaseHandler {
           await ctx.reply(ctx.t('crop_invalid_dimensions'))
           return
         }
+
+        shouldResetSession = true
 
         const { file_id: fileId } = this.validateParams(CropParamsSchema, ctx.session.params)
 
@@ -138,7 +142,9 @@ export class CropHandler extends BaseHandler {
             this.logger.error({ error, path: outputPath }, 'Failed to remove output file.'),
           )
         }
-        await this.resetSession(ctx)
+        if (shouldResetSession) {
+          await this.resetSession(ctx)
+        }
       }
     },
   }

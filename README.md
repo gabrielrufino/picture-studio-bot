@@ -33,6 +33,7 @@ A Telegram bot for processing and manipulating images.
 - `/compress` - Compress an image
 - `/convert` - Convert an image format
 - `/crop` - Crop an image
+- `/info` - Get image info
 - `/resize` - Resize an image
 - `/rotate` - Rotate an image
 - `/pro` - Upgrade to Pro

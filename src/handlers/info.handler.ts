@@ -1,11 +1,11 @@
 import type { UserRepository } from '@/repositories/user.repository'
 import type { CustomContext } from '@/types/custom-context.type'
 import fs from 'node:fs/promises'
-import sharp from 'sharp'
 import { CommandEnum } from '@/enums/command.enum'
 import { InvalidFileError } from '@/errors/invalid-file.error'
 import { LimitExceededError } from '@/errors/limit-exceeded.error'
 import { UserNotFoundError } from '@/errors/user-not-found.error'
+import { formatString } from '@/utils/format.util'
 import { BaseHandler } from './base.handler'
 
 export class InfoHandler extends BaseHandler {
@@ -34,7 +34,6 @@ export class InfoHandler extends BaseHandler {
         await ctx.reply(ctx.t('info_processing'))
 
         const file = await ctx.api.getFile(photo.file_id)
-        await this.checkLimits(ctx, { fileSize })
 
         await this.runWithUsage(ctx, this.userRepository, async () => {
           inputPath = await file.download()
@@ -54,17 +53,23 @@ export class InfoHandler extends BaseHandler {
           const format = (metadata.format || 'unknown').toUpperCase()
 
           await ctx.reply(
-            ctx.t('info_result')
-              .replace('{width}', String(metadata.width))
-              .replace('{height}', String(metadata.height))
-              .replace('{format}', format)
-              .replace('{size}', `${sizeKB} KB`),
+            formatString(ctx.t('info_result'), {
+              width: String(metadata.width),
+              height: String(metadata.height),
+              format,
+              size: `${sizeKB} KB`,
+            }),
             { parse_mode: 'HTML' },
           )
         })
       }
       catch (error) {
-        if (error instanceof InvalidFileError || error instanceof LimitExceededError) {
+        if (error instanceof InvalidFileError) {
+          await ctx.reply(ctx.t('info_invalid_file'))
+          return
+        }
+
+        if (error instanceof LimitExceededError) {
           return
         }
 

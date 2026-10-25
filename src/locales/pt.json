@@ -62,6 +62,7 @@
   "info_processing": "ℹ️ Lendo informações da imagem...",
   "info_send_file": "ℹ️ Envie-me a imagem que deseja obter informações.",
   "info_result": "ℹ️ <b>Info da Imagem</b>\n\n📐 Dimensões: {width}x{height}\n🎨 Formato: {format}\n📦 Tamanho: {size}",
+  "info_invalid_file": "⚠️ O arquivo que você enviou não é uma imagem válida.",
   "info_error": "❌ Ocorreu um erro ao ler as informações da imagem. Por favor, tente novamente mais tarde.",
   "rotate_send_file": "🔄 Envie-me a imagem que deseja rotacionar.",
   "rotate_choose_degrees": "🔄 Escolha quantos graus você deseja rotacionar a imagem:",

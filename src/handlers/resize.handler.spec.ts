@@ -167,6 +167,8 @@ describe(ResizeHandler.name, () => {
       expect(ctx.answerCallbackQuery).toHaveBeenCalled()
       expect(ctx.reply).toHaveBeenCalledWith('resize_custom_dimensions')
       expect(ctx.editMessageText).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Resize)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should ignore non-resize callbacks', async () => {
@@ -242,6 +244,8 @@ describe(ResizeHandler.name, () => {
 
       expect(ctx.reply).toHaveBeenCalledWith('resize_invalid_dimensions')
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Resize)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should reply invalid dimensions for zero values', async () => {
@@ -252,6 +256,8 @@ describe(ResizeHandler.name, () => {
 
       expect(ctx.reply).toHaveBeenCalledWith('resize_invalid_dimensions')
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Resize)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should reply invalid dimensions for out-of-bounds values', async () => {
@@ -262,6 +268,8 @@ describe(ResizeHandler.name, () => {
 
       expect(ctx.reply).toHaveBeenCalledWith('resize_invalid_dimensions')
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Resize)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should return early if no text in message', async () => {
@@ -271,6 +279,8 @@ describe(ResizeHandler.name, () => {
       await handler.events.message!(ctx)
 
       expect(ctx.reply).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBe(CommandEnum.Resize)
+      expect(ctx.session.params).toEqual({ file_id: 'photo-id' })
     })
 
     it('should throw UserNotFoundError if no user', async () => {
