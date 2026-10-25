@@ -1,4 +1,5 @@
 export { InvalidFileError } from './invalid-file.error'
+export { InvalidWatermarkError } from './invalid-watermark.error'
 export { LimitExceededError } from './limit-exceeded.error'
 export { SessionValidationError } from './session-validation.error'
 export { UserNotFoundError } from './user-not-found.error'

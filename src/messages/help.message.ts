@@ -12,6 +12,7 @@ export class HelpMessage {
     CommandEnum.Info,
     CommandEnum.Resize,
     CommandEnum.Rotate,
+    CommandEnum.Watermark,
     CommandEnum.Language,
   ])
 

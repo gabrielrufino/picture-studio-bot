@@ -11,4 +11,5 @@ export enum CommandEnum {
   Rotate = 'rotate',
   Start = 'start',
   Version = 'version',
+  Watermark = 'watermark',
 }
