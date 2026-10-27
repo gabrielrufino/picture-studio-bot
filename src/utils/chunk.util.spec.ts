@@ -27,8 +27,11 @@ describe(chunk.name, () => {
     const result = chunk(Array.from({ length: 100 }, (_, i) => i), 10)
 
     expect(result).toHaveLength(10)
-    expect(result[0]).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    expect(result[9]).toEqual([90, 91, 92, 93, 94, 95, 96, 97, 98, 99])
+    for (let index = 0; index < 10; index++) {
+      expect(result[index]).toEqual(
+        Array.from({ length: 10 }, (_, i) => index * 10 + i),
+      )
+    }
   })
 
   it('should not mutate the input array', () => {

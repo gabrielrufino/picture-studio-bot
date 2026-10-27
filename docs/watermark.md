@@ -1,4 +1,4 @@
-# Watermark (`/watermark`)
+# Watermark
 
 Business and technical documentation for the Picture Studio Bot watermark feature.
 
@@ -142,6 +142,10 @@ The session is persisted in MongoDB (`sessions`, via `MongoDBAdapter`) and survi
 
 ```
 collecting_bases ──(/ready | Ready)──▶ awaiting_watermark
+awaiting_watermark ──(valid file)──▶ positions
+positions ──(Apply)──▶ scale
+scale ──(Choose scale)──▶ processing ──▶ done
+
         ▲                                     │
         │                          (valid document)
         │                                     ▼

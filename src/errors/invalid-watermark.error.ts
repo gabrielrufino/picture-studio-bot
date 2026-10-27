@@ -1,6 +1,6 @@
 export class InvalidWatermarkError extends Error {
   constructor() {
     super('Invalid watermark image.')
-    this.name = 'InvalidWatermarkError'
+    this.name = InvalidWatermarkError.name
   }
 }
