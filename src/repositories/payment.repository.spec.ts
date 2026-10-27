@@ -1,26 +1,23 @@
-import { MongoClient, ObjectId } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { Db, MongoClient } from 'mongodb'
+import { ObjectId } from 'mongodb'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PaymentEntity } from '@/entities/payment.entity'
 import { CurrencyEnum } from '@/enums/currency.enum'
+import { connectToTestDatabase } from '@/test/mongodb'
 import { PaymentRepository } from './payment.repository'
 
 describe(PaymentRepository.name, () => {
   let paymentRepository: PaymentRepository
-  let mongod: MongoMemoryServer
   let client: MongoClient
+  let database: Db
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create()
-    client = new MongoClient(mongod.getUri())
-    await client.connect()
-    const database = client.db('pdf_studio_test')
+    ({ client, database } = await connectToTestDatabase('payment'))
     paymentRepository = new PaymentRepository(database)
   })
 
   afterAll(async () => {
     await client.close()
-    await mongod.stop()
   })
 
   it('should create a payment', async () => {
@@ -51,13 +48,12 @@ describe(PaymentRepository.name, () => {
       currency: CurrencyEnum.XTR,
     }))
 
-    const indexes = await client.db('pdf_studio_test').collection('payments').indexes()
+    const indexes = await database.collection('payments').indexes()
     expect(indexes.some(idx => idx.key.user_id === 1)).toBe(true)
   })
 
   it('should enforce schema — reject invalid currency', async () => {
     const userId = new ObjectId()
-    const db = client.db('pdf_studio_test')
 
     // Ensure collection is initialized
     await paymentRepository.create(new PaymentEntity({
@@ -67,7 +63,7 @@ describe(PaymentRepository.name, () => {
     }))
 
     await expect(
-      db.collection('payments').insertOne({
+      database.collection('payments').insertOne({
         user_id: userId,
         amount: 10,
         currency: 'INVALID',

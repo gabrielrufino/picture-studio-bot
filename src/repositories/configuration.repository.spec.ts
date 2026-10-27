@@ -1,25 +1,21 @@
-import { MongoClient } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { Db, MongoClient } from 'mongodb'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { connectToTestDatabase } from '@/test/mongodb'
 import { ConfigurationRepository } from './configuration.repository'
 
 describe(ConfigurationRepository.name, () => {
   let configurationRepository: ConfigurationRepository
-  let mongod: MongoMemoryServer
   let client: MongoClient
+  let database: Db
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create()
-    client = new MongoClient(mongod.getUri())
-    await client.connect()
-    const database = client.db('pdf_studio_test')
+    ({ client, database } = await connectToTestDatabase('configuration'))
     configurationRepository = new ConfigurationRepository(database)
     await configurationRepository.init()
   })
 
   afterAll(async () => {
     await client.close()
-    await mongod.stop()
   })
 
   describe(ConfigurationRepository.prototype.findGlobalConfig.name, () => {
@@ -44,8 +40,7 @@ describe(ConfigurationRepository.name, () => {
     it('should not create a duplicate document when init is called again', async () => {
       await configurationRepository.init()
 
-      const docs = await client
-        .db('pdf_studio_test')
+      const docs = await database
         .collection('configurations')
         .find({ _id: 'global_config' } as any)
         .toArray()
@@ -54,7 +49,7 @@ describe(ConfigurationRepository.name, () => {
     })
 
     it('should migrate existing configuration missing maintenance fields', async () => {
-      const db = client.db('pdf_studio_test')
+      const db = database
       const coll = db.collection('configurations')
 
       // Remove the validator temporarily to insert an incomplete document
@@ -123,7 +118,7 @@ describe(ConfigurationRepository.name, () => {
   })
 
   it('should enforce schema — reject document missing required fields', async () => {
-    const db = client.db('pdf_studio_test')
+    const db = database
 
     await expect(
       db.collection('configurations').insertOne({
@@ -135,7 +130,7 @@ describe(ConfigurationRepository.name, () => {
   })
 
   it('should enforce schema — reject pro_price <= 0', async () => {
-    const db = client.db('pdf_studio_test')
+    const db = database
 
     await expect(
       db.collection('configurations').insertOne({

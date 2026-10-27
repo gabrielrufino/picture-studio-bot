@@ -12,6 +12,7 @@ import { ResizeHandler } from './resize.handler'
 import { RotateHandler } from './rotate.handler'
 import { StartHandler } from './start.handler'
 import { VersionHandler } from './version.handler'
+import { WatermarkHandler } from './watermark.handler'
 
 const coreHandlers: Array<BaseHandler> = [
   new CompressHandler(userRepository),
@@ -25,6 +26,7 @@ const coreHandlers: Array<BaseHandler> = [
   new RotateHandler(userRepository),
   new StartHandler(userRepository),
   new VersionHandler(),
+  new WatermarkHandler(userRepository),
 ]
 
 const helpHandler = new HelpHandler(coreHandlers)

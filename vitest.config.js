@@ -6,5 +6,9 @@ export default defineConfig({
   },
   test: {
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    globalSetup: ['./src/test/mongodb.global-setup.ts'],
+    coverage: {
+      exclude: ['src/test/**'],
+    },
   },
 })
