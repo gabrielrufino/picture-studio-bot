@@ -10,6 +10,7 @@ export enum EventEnum {
   CommandRotate = 'command_rotate',
   CommandStart = 'command_start',
   CommandVersion = 'command_version',
+  CommandWatermark = 'command_watermark',
 
   ButtonCompress = 'button_compress',
   ButtonConvert = 'button_convert',
@@ -22,6 +23,7 @@ export enum EventEnum {
   ButtonRotate = 'button_rotate',
   ButtonStart = 'button_start',
   ButtonVersion = 'button_version',
+  ButtonWatermark = 'button_watermark',
 
   FileReceived = 'file_received',
 }

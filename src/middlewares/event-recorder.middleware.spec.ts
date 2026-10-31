@@ -57,6 +57,30 @@ describe(eventRecorderMiddleware.name, () => {
     })])
   })
 
+  it('should record specific CommandWatermark if message text starts with /watermark', async () => {
+    const ctx: any = {
+      from: { id: 123 },
+      message: { text: '/watermark' },
+    }
+    await eventRecorderMiddleware(ctx, next)
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
+      event: EventEnum.CommandWatermark,
+      telegram_user: { id: 123 },
+    })])
+  })
+
+  it('should record specific ButtonWatermark if callbackQuery data is watermark', async () => {
+    const ctx: any = {
+      from: { id: 123 },
+      callbackQuery: { data: 'watermark' },
+    }
+    await eventRecorderMiddleware(ctx, next)
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
+      event: EventEnum.ButtonWatermark,
+      telegram_user: { id: 123 },
+    })])
+  })
+
   it('should record FileReceived if document is present', async () => {
     const ctx: any = {
       from: { id: 123 },

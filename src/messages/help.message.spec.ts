@@ -49,6 +49,18 @@ describe(HelpMessage.name, () => {
     expect((buttons[3][0] as any).callback_data).toBe('rotate')
   })
 
+  it('should include watermark as an operation', () => {
+    const operationHandlers = [
+      { command: 'watermark', description: 'Apply a watermark' },
+    ] as any
+    const { reply_markup } = new HelpMessage(operationHandlers, ctx).build()
+    const keyboard = reply_markup as InlineKeyboard
+    const buttons = keyboard.inline_keyboard
+
+    expect(buttons[0][0].text).toBe('operation_watermark')
+    expect((buttons[0][0] as any).callback_data).toBe('watermark')
+  })
+
   it('should not include uncategorized handlers', () => {
     const customHandlers = [
       { command: 'custom', description: 'Custom command' },
