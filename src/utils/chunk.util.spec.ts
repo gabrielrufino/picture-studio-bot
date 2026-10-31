@@ -42,6 +42,15 @@ describe(chunk.name, () => {
     expect(items).toEqual([1, 2, 3])
   })
 
+  it('should return individual chunks with expected contents when the input is large', () => {
+    const items = Array.from({ length: 7 }, (_, i) => i)
+    const result = chunk(items, 3)
+
+    expect(result[0]).toEqual([0, 1, 2])
+    expect(result[1]).toEqual([3, 4, 5])
+    expect(result[2]).toEqual([6])
+  })
+
   it('should throw for a zero size', () => {
     expect(() => chunk([1], 0)).toThrow(RangeError)
   })

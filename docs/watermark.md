@@ -140,24 +140,16 @@ All messages go through `ctx.t(key)` and exist in `en.json`, `es.json`, and `pt.
 
 The session is persisted in MongoDB (`sessions`, via `MongoDBAdapter`) and survives restarts. The discriminator is `params.step`:
 
-```
-collecting_bases ──(/ready | Ready)──▶ awaiting_watermark
-awaiting_watermark ──(valid file)──▶ positions
-positions ──(Apply)──▶ scale
-scale ──(Choose scale)──▶ processing ──▶ done
-
-        ▲                                     │
-        │                          (valid document)
-        │                                     ▼
-        └──────────── Cancel ─────────────  positions
-                                              │  ▲
-                                    (Apply)   │  │ (Back)
-                                              ▼  │
-                                             scale
-                                              │
-                                     (scale chosen)
-                                              ▼
-                                          processing ──▶ session cleared
+```mermaid
+stateDiagram-v2
+    [*] --> collecting_bases
+    collecting_bases --> awaiting_watermark : /ready | Ready
+    awaiting_watermark --> positions : valid file
+    positions --> scale : Apply
+    scale --> processing : Choose scale
+    processing --> [*] : done
+    positions --> collecting_bases : Cancel
+    scale --> positions : Back
 ```
 
 States:
