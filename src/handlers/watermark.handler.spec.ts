@@ -225,6 +225,7 @@ describe(WatermarkHandler.name, () => {
       t,
       user: { plan_type: PlanTypeEnum.Free },
       from: { id: 1 },
+      me: { username: 'picture_studio_bot' },
       reply: vi.fn().mockResolvedValue(undefined),
       editMessageText: vi.fn().mockResolvedValue(undefined),
       editMessageReplyMarkup: vi.fn().mockResolvedValue(undefined),
@@ -313,12 +314,12 @@ describe(WatermarkHandler.name, () => {
 
       expect(params().base_file_ids).toEqual(['photo-1', 'photo-2', 'photo-3'])
       expect(params().limit_warned).toBe(true)
-      expect(ctx.reply).toHaveBeenCalledTimes(3)
+      expect(ctx.reply).toHaveBeenCalledTimes(2)
 
       setPhoto('photo-5')
       await handler.events['msg:photo']!(ctx)
 
-      expect(ctx.reply).toHaveBeenCalledTimes(3)
+      expect(ctx.reply).toHaveBeenCalledTimes(2)
       expect(params().base_file_ids).toEqual(['photo-1', 'photo-2', 'photo-3'])
     })
 
@@ -347,7 +348,7 @@ describe(WatermarkHandler.name, () => {
 
       expect(params().base_file_ids).toHaveLength(100)
       expect(params().limit_warned).toBe(true)
-      expect(ctx.reply).toHaveBeenCalledTimes(3)
+      expect(ctx.reply).toHaveBeenCalledTimes(2)
     })
 
     it('should ask for the watermark file when a photo arrives at that step', async () => {

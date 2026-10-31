@@ -62,6 +62,7 @@ export const WatermarkParamsSchema = z.object({
   scale: WatermarkScaleSchema.default('auto'),
   limit_warned: z.boolean().optional(),
   paths: z.array(z.string()).optional(),
+  callback_message_id: z.number().optional(),
 })
 
 export const WatermarkConfiguredParamsSchema = WatermarkParamsSchema.extend({

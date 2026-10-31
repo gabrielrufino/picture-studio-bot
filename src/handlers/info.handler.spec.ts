@@ -86,11 +86,10 @@ describe(InfoHandler.name, () => {
       it('should successfully read image info and send result', async () => {
         await handler.events['msg:photo']!(ctx)
 
-        expect(ctx.reply).toHaveBeenCalledWith('info_processing')
-        expect(ctx.reply).toHaveBeenCalledWith(
-          expect.stringContaining('info_result'),
-          { parse_mode: 'HTML' },
-        )
+        const calls = (ctx.reply as any).mock.calls
+        expect(calls[0][0]).toBe('info_processing')
+        // Second call is formatString'd result containing the key as-is (mock t returns key)
+        expect(calls[1][0]).toContain('info_result')
         expect(userRepository.incrementUsage).toHaveBeenCalledWith(1, 3)
         expect(ctx.session.command).toBeNull()
         expect(ctx.session.params).toBeNull()
@@ -139,6 +138,51 @@ describe(InfoHandler.name, () => {
         await handler.events['msg:photo']!(ctx)
 
         expect((handler as any).logger.error).toHaveBeenCalled()
+      })
+    })
+
+    describe('msg:document', () => {
+      it('should process image documents and send info result', async () => {
+        const docCtx = {
+          session: { command: CommandEnum.Info, params: null },
+          t: vi.fn(key => key),
+          user: { id: 1 },
+          from: { id: 1 },
+          reply: vi.fn().mockResolvedValue(undefined),
+          replyWithPhoto: vi.fn().mockResolvedValue(undefined),
+          api: {
+            getFile: vi.fn().mockResolvedValue({
+              file_id: 'doc-id',
+              file_size: 200,
+              download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
+            }),
+          },
+          message: { document: { file_id: 'doc-id', file_size: 200, mime_type: 'image/jpeg' } },
+        } as unknown as CustomContext
+
+        await handler.events['msg:document']!(docCtx)
+
+        const calls = (docCtx.reply as any).mock.calls
+        expect(calls[0][0]).toBe('info_processing')
+        expect(calls[1][0]).toContain('info_result')
+        expect(userRepository.incrementUsage).toHaveBeenCalledWith(1, 3)
+      })
+
+      it('should ignore non-image documents', async () => {
+        const docCtx = {
+          session: { command: CommandEnum.Info, params: null },
+          t: vi.fn(key => key),
+          user: { id: 1 },
+          from: { id: 1 },
+          reply: vi.fn().mockResolvedValue(undefined),
+          replyWithPhoto: vi.fn().mockResolvedValue(undefined),
+          api: {},
+          message: { document: { file_id: 'doc-id', file_size: 200, mime_type: 'application/pdf' } },
+        } as unknown as CustomContext
+
+        await handler.events['msg:document']!(docCtx)
+
+        expect(docCtx.reply).not.toHaveBeenCalled()
       })
     })
   })

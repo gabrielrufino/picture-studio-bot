@@ -95,6 +95,7 @@ describe(ProHandler.name, () => {
       startDate.setDate(startDate.getDate() - 31)
       const existingUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: startDate })
       vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)
+      vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce({} as any)
 
       const ctx = createMockContext({
         session: { command: CommandEnum.Pro, params: { file_id: 'photo-id' } },
@@ -105,7 +106,7 @@ describe(ProHandler.name, () => {
       expect(userRepository.updateById).toHaveBeenCalledWith('user-id', {
         plan_type: PlanTypeEnum.Free,
         plan_started_at: null,
-      })
+      }, { filter: { plan_started_at: startDate } })
       expect(ctx.reply).toHaveBeenCalledWith('pro_expired')
       expect(ctx.replyWithInvoice).not.toHaveBeenCalled()
       expect(ctx.session.command).toBeNull()

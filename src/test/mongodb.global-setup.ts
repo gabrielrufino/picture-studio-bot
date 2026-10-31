@@ -1,12 +1,21 @@
 import process from 'node:process'
 import { MongoMemoryServer } from 'mongodb-memory-server'
 
-export async function setup(): Promise<() => Promise<void>> {
-  const mongod = await MongoMemoryServer.create()
+let instance: MongoMemoryServer | undefined
 
-  process.env.MONGODB_CONNECTION_STRING = mongod.getUri()
+export async function setup(): Promise<() => Promise<void>> {
+  // Skip if MongoDB is already configured (e.g., CI or local Docker)
+  if (process.env.MONGODB_CONNECTION_STRING) {
+    return async () => {}
+  }
+
+  instance = await MongoMemoryServer.create()
+  process.env.MONGODB_CONNECTION_STRING = instance.getUri()
 
   return async () => {
-    await mongod.stop()
+    if (instance) {
+      await instance.stop()
+      instance = undefined
+    }
   }
 }

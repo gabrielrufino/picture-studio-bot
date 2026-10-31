@@ -61,15 +61,26 @@ export class ProHandler extends BaseHandler {
     const user = await this.userRepository.findByTelegramId(userId)
 
     if (user?.plan_type === PlanTypeEnum.Pro) {
-      if (isPlanExpired(user.plan_started_at)) {
-        await this.userRepository.updateById(user._id, { plan_type: PlanTypeEnum.Free, plan_started_at: null })
+      const planStartedAt = user.plan_started_at
+      const locale = ctx.session?.language || user.language || 'en'
+
+      if (isPlanExpired(planStartedAt)) {
+        const updated = await this.userRepository.updateById(
+          user._id,
+          { plan_type: PlanTypeEnum.Free, plan_started_at: null },
+          { filter: { plan_started_at: planStartedAt } },
+        )
+        if (!updated) {
+          await ctx.reply(ctx.t('subscription_info').replace('{date}', planStartedAt ? new Date(planStartedAt).toLocaleDateString(locale) : '-'), { parse_mode: 'HTML' })
+          await this.resetSession(ctx)
+          return
+        }
         await ctx.reply(ctx.t('pro_expired'))
         await this.resetSession(ctx)
         return
       }
 
-      const locale = ctx.session?.language || user.language || 'en'
-      const date = user.plan_started_at ? new Date(user.plan_started_at).toLocaleDateString(locale) : '-'
+      const date = planStartedAt ? new Date(planStartedAt).toLocaleDateString(locale) : '-'
       await ctx.reply(ctx.t('subscription_info').replace('{date}', date), { parse_mode: 'HTML' })
       await this.resetSession(ctx)
       return

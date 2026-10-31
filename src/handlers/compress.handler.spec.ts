@@ -142,11 +142,17 @@ describe(CompressHandler.name, () => {
         expect(ctx.reply).not.toHaveBeenCalledWith('compress_error')
       })
 
-      it('should return silently on InvalidFileError', async () => {
-        vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new InvalidFileError())
+      it('should reply with invalid file message on corrupt photo', async () => {
+        vi.spyOn(handler as any, 'validateImageFile').mockRejectedValueOnce(new InvalidFileError())
+
+        const downloadMock = vi.fn().mockResolvedValue('/tmp/input.jpg')
+        ctx.getFile = vi.fn().mockResolvedValue({ download: downloadMock })
+
         await handler.events['msg:photo']!(ctx)
 
-        expect(ctx.reply).not.toHaveBeenCalledWith('compress_error')
+        expect(ctx.reply).toHaveBeenCalledWith('compress_invalid_file')
+        expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+        expect(logger.error).not.toHaveBeenCalled()
       })
 
       it('should throw error when file download fails', async () => {

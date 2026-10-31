@@ -62,11 +62,14 @@ export abstract class BaseRepository<T extends Document & { updated_at: Date }> 
   }
 
   @EnsureInitialized
-  public async updateById(id: ObjectId, entity: Partial<T>): Promise<T | null> {
+  public async updateById(id: ObjectId, entity: Partial<T>, options?: { filter?: Document }): Promise<T | null> {
     entity.updated_at = new Date()
 
+    const baseFilter = { _id: id } as any
+    const filter = options?.filter ? { ...baseFilter, ...options.filter } : baseFilter
+
     const result = await this.collection.findOneAndUpdate(
-      { _id: id } as any,
+      filter,
       { $set: entity },
       { returnDocument: 'after' },
     )

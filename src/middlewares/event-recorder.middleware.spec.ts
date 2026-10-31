@@ -81,6 +81,30 @@ describe(eventRecorderMiddleware.name, () => {
     })])
   })
 
+  it('should record CommandInfo if message text starts with /info', async () => {
+    const ctx: any = {
+      from: { id: 123 },
+      message: { text: '/info' },
+    }
+    await eventRecorderMiddleware(ctx, next)
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
+      event: EventEnum.CommandInfo,
+      telegram_user: { id: 123 },
+    })])
+  })
+
+  it('should record ButtonInfo if callbackQuery data is info', async () => {
+    const ctx: any = {
+      from: { id: 123 },
+      callbackQuery: { data: 'info' },
+    }
+    await eventRecorderMiddleware(ctx, next)
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
+      event: EventEnum.ButtonInfo,
+      telegram_user: { id: 123 },
+    })])
+  })
+
   it('should record FileReceived if document is present', async () => {
     const ctx: any = {
       from: { id: 123 },

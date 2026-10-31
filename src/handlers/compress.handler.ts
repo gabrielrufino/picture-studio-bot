@@ -45,7 +45,17 @@ export class CompressHandler extends BaseHandler {
             throw new Error('Failed to download file')
           }
 
-          await this.validateImageFile(inputPath)
+          try {
+            await this.validateImageFile(inputPath)
+          }
+          catch (error) {
+            if (error instanceof InvalidFileError) {
+              await ctx.reply(ctx.t('compress_invalid_file'))
+              return
+            }
+
+            throw error
+          }
 
           await ctx.reply(ctx.t('compress_compressing'))
 
@@ -72,7 +82,7 @@ export class CompressHandler extends BaseHandler {
         })
       }
       catch (error) {
-        if (error instanceof InvalidFileError || error instanceof LimitExceededError) {
+        if (error instanceof LimitExceededError) {
           return
         }
 

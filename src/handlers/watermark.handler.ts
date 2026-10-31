@@ -161,7 +161,17 @@ export class WatermarkHandler extends BaseHandler {
         }
 
         const text = ctx.message?.text?.trim()
-        if (!text || !/^\/ready(?:@\w+)?$/i.test(text)) {
+        if (!text) {
+          return
+        }
+
+        if (ctx.me?.username && /^\/ready@/i.test(text)) {
+          const match = text.match(/^\/ready@(\w+)$/i)
+          if (!match || match[1].toLowerCase() !== ctx.me.username.toLowerCase()) {
+            return
+          }
+        }
+        else if (!/^\/ready$/i.test(text)) {
           return
         }
 
@@ -190,7 +200,7 @@ export class WatermarkHandler extends BaseHandler {
         }
 
         if (data === 'watermark_cancel') {
-          await this.cancel(ctx)
+          await this.handleCancel(ctx)
           return
         }
 
@@ -367,6 +377,8 @@ export class WatermarkHandler extends BaseHandler {
     }
 
     if (params.base_file_ids.length === limit) {
+      params.limit_warned = true
+      ctx.session.params = params
       await ctx.reply(this.photoLimitMessage(ctx, limit), {
         reply_markup: this.readyKeyboard(ctx),
       })
@@ -461,12 +473,6 @@ export class WatermarkHandler extends BaseHandler {
         watermark_file_id: document.file_id,
       })
 
-      ctx.session.params = {
-        ...configured,
-        step: 'positions',
-        positions: [],
-      }
-
       const text = metadata.hasAlpha
         ? ctx.t('watermark_choose_positions')
         : `${ctx.t('watermark_choose_positions')}\n\n${ctx.t('watermark_no_transparency')}`
@@ -474,6 +480,14 @@ export class WatermarkHandler extends BaseHandler {
       await ctx.reply(text, {
         reply_markup: this.positionsKeyboard(ctx, []),
       })
+
+      const message = ctx.message
+      ctx.session.params = {
+        ...configured,
+        step: 'positions',
+        positions: [],
+        callback_message_id: message?.message_id,
+      }
     }
     finally {
       if (watermarkPath) {
@@ -556,7 +570,21 @@ export class WatermarkHandler extends BaseHandler {
     })
   }
 
-  private async cancel(ctx: CustomContext): Promise<void> {
+  private async handleCancel(ctx: CustomContext): Promise<void> {
+    const callbackMessageId = ctx.callbackQuery?.message?.message_id
+    const params = this.getParams(ctx)
+
+    if (params.step !== 'positions' && params.step !== 'scale') {
+      await ctx.answerCallbackQuery()
+      return
+    }
+
+    const storedMessageId = params.callback_message_id as number | undefined
+    if (storedMessageId && callbackMessageId !== storedMessageId) {
+      await ctx.answerCallbackQuery()
+      return
+    }
+
     await ctx.answerCallbackQuery()
     await this.resetSession(ctx)
 
@@ -778,7 +806,13 @@ export class WatermarkHandler extends BaseHandler {
       const extension = OUTPUT_EXTENSIONS[format]
       const outputPath = join(os.tmpdir(), `watermark-${crypto.randomUUID()}.${extension}`)
 
-      await fs.writeFile(outputPath, buffer)
+      try {
+        await fs.writeFile(outputPath, buffer)
+      }
+      catch (writeError) {
+        await fs.rm(outputPath, { force: true }).catch(() => {})
+        throw writeError
+      }
 
       return {
         path: outputPath,
@@ -803,11 +837,21 @@ export class WatermarkHandler extends BaseHandler {
     const ratio = scale === 'auto' ? AUTO_SCALE_RATIO : SCALE_RATIOS[scale]
     const maxByHeight = Math.floor((baseHeight * MAX_HEIGHT_RATIO) * (markWidth / markHeight))
 
-    const targetWidth = Math.max(
+    let targetWidth = Math.max(
       1,
       Math.min(Math.round(baseWidth * ratio), maxByHeight, markWidth),
     )
-    const targetHeight = Math.max(1, Math.round((markHeight * targetWidth) / markWidth))
+    let targetHeight = Math.max(1, Math.round((markHeight * targetWidth) / markWidth))
+
+    if (targetHeight > baseHeight) {
+      targetHeight = baseHeight
+      targetWidth = Math.max(1, Math.round((markWidth * targetHeight) / markHeight))
+    }
+
+    if (targetWidth > baseWidth) {
+      targetWidth = baseWidth
+      targetHeight = Math.max(1, Math.round((markHeight * targetWidth) / markWidth))
+    }
 
     const margin = Math.max(
       0,
