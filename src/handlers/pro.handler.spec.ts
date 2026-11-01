@@ -113,6 +113,27 @@ describe(ProHandler.name, () => {
       expect(ctx.session.params).toBeNull()
     })
 
+    it('should show the current plan date when the downgrade loses a renewal race', async () => {
+      const expiredDate = new Date()
+      expiredDate.setDate(expiredDate.getDate() - 31)
+      const renewedDate = new Date()
+      const expiredUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: expiredDate })
+      const renewedUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: renewedDate })
+      vi.spyOn(userRepository, 'findByTelegramId')
+        .mockResolvedValueOnce(expiredUser)
+        .mockResolvedValueOnce(renewedUser)
+      vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce(null)
+
+      const ctx = createMockContext({
+        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+      })
+
+      await handler.onCommand(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith(`Active since ${renewedDate.toLocaleDateString()}`, { parse_mode: 'HTML' })
+      expect(ctx.session.command).toBeNull()
+    })
+
     it('should set session command and send invoice with pro_price from config', async () => {
       const existingUser = createMockUser()
       vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)

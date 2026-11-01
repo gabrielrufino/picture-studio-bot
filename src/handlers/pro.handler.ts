@@ -71,7 +71,9 @@ export class ProHandler extends BaseHandler {
           { filter: { plan_started_at: planStartedAt } },
         )
         if (!updated) {
-          await ctx.reply(ctx.t('subscription_info').replace('{date}', planStartedAt ? new Date(planStartedAt).toLocaleDateString(locale) : '-'), { parse_mode: 'HTML' })
+          const refreshed = await this.userRepository.findByTelegramId(userId)
+          const currentStartedAt = refreshed?.plan_started_at ?? planStartedAt
+          await ctx.reply(ctx.t('subscription_info').replace('{date}', currentStartedAt ? new Date(currentStartedAt).toLocaleDateString(locale) : '-'), { parse_mode: 'HTML' })
           await this.resetSession(ctx)
           return
         }
