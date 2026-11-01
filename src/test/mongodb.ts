@@ -17,5 +17,8 @@ export async function connectToTestDatabase(name: string): Promise<TestDatabase>
   const client = new MongoClient(uri)
   await client.connect()
 
-  return { client, database: client.db(`pdf_studio_test_${name}`) }
+  const databaseName = `pdf_studio_test_${name}`
+  await client.db(databaseName).dropDatabase().catch(() => {})
+
+  return { client, database: client.db(databaseName) }
 }
