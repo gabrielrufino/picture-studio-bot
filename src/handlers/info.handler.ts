@@ -49,8 +49,10 @@ export class InfoHandler extends BaseHandler {
             throw new Error('Failed to download file')
           }
 
-          const metadata = await this.handleImageInfo(inputPath)
           const stats = await fs.stat(inputPath)
+          await this.checkLimits(ctx, { fileSize: stats.size })
+
+          const metadata = await this.handleImageInfo(inputPath)
           const sizeKB = (stats.size / 1024).toFixed(1)
 
           await ctx.reply(
@@ -115,8 +117,10 @@ export class InfoHandler extends BaseHandler {
             throw new Error('Failed to download file')
           }
 
-          const metadata = await this.handleImageInfo(inputPath)
           const stats = await fs.stat(inputPath)
+          await this.checkLimits(ctx, { fileSize: stats.size })
+
+          const metadata = await this.handleImageInfo(inputPath)
           const sizeKB = (stats.size / 1024).toFixed(1)
 
           await ctx.reply(
