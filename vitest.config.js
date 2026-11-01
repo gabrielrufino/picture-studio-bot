@@ -20,7 +20,10 @@ export default defineConfig({
         resolve: { tsconfigPaths: true },
         test: {
           include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-          exclude: ['src/repositories/*.spec.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+          exclude: [
+            'src/repositories/*.spec.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+            'src/test/mongodb.spec.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+          ],
         },
       },
       {

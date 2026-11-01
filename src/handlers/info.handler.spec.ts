@@ -7,6 +7,8 @@ import { InvalidFileError } from '@/errors/invalid-file.error'
 import { LimitExceededError } from '@/errors/limit-exceeded.error'
 import { InfoHandler } from './info.handler'
 
+const INFO_RESULT_TEMPLATE = 'ℹ️ <b>Image Info</b>\n\n📐 Dimensions: {width}x{height}\n🎨 Format: {format}\n📦 File size: {size}'
+
 vi.mock('node:fs/promises', () => ({
   default: {
     stat: vi.fn().mockResolvedValue({ size: 102400 }),
@@ -36,6 +38,11 @@ vi.mock('grammy', async () => {
   }
 })
 
+vi.mock('@/utils/format.util', () => ({
+  formatString: (template: string, replacements: Record<string, string>) =>
+    Object.entries(replacements).reduce((acc, [key, value]) => acc.replace(`{${key}}`, value), template),
+}))
+
 describe(InfoHandler.name, () => {
   let userRepository: UserRepository
   let handler: InfoHandler
@@ -53,7 +60,7 @@ describe(InfoHandler.name, () => {
 
     ctx = {
       session: { command: CommandEnum.Info, params: null },
-      t: vi.fn(key => key),
+      t: vi.fn(key => key === 'info_result' ? INFO_RESULT_TEMPLATE : key),
       user: { id: 1 },
       from: { id: 1 },
       reply: vi.fn().mockResolvedValue(undefined),
@@ -88,8 +95,10 @@ describe(InfoHandler.name, () => {
 
         const calls = (ctx.reply as any).mock.calls
         expect(calls[0][0]).toBe('info_processing')
-        // Second call is formatString'd result containing the key as-is (mock t returns key)
-        expect(calls[1][0]).toContain('info_result')
+        // Second call is formatString'd result containing width, height, format, size
+        expect(calls[1][0]).toBe(
+          'ℹ️ <b>Image Info</b>\n\n📐 Dimensions: 1920x1080\n🎨 Format: JPEG\n📦 File size: 100.0 KB',
+        )
         expect(userRepository.incrementUsage).toHaveBeenCalledWith(1, 3)
         expect(ctx.session.command).toBeNull()
         expect(ctx.session.params).toBeNull()
@@ -156,7 +165,7 @@ describe(InfoHandler.name, () => {
       it('should process image documents and send info result', async () => {
         const docCtx = {
           session: { command: CommandEnum.Info, params: null },
-          t: vi.fn(key => key),
+          t: vi.fn(key => key === 'info_result' ? INFO_RESULT_TEMPLATE : key),
           user: { id: 1 },
           from: { id: 1 },
           reply: vi.fn().mockResolvedValue(undefined),
@@ -175,8 +184,38 @@ describe(InfoHandler.name, () => {
 
         const calls = (docCtx.reply as any).mock.calls
         expect(calls[0][0]).toBe('info_processing')
-        expect(calls[1][0]).toContain('info_result')
+        expect(calls[1][0]).toBe(
+          'ℹ️ <b>Image Info</b>\n\n📐 Dimensions: 1920x1080\n🎨 Format: JPEG\n📦 File size: 100.0 KB',
+        )
         expect(userRepository.incrementUsage).toHaveBeenCalledWith(1, 3)
+      })
+
+      it('should not reply with info result when downloaded document exceeds limits', async () => {
+        vi.spyOn(handler as any, 'checkLimits')
+          .mockResolvedValueOnce(undefined)
+          .mockRejectedValueOnce(new LimitExceededError())
+
+        const docCtx = {
+          session: { command: CommandEnum.Info, params: null },
+          t: vi.fn(key => key),
+          user: { id: 1 },
+          from: { id: 1 },
+          reply: vi.fn().mockResolvedValue(undefined),
+          replyWithPhoto: vi.fn().mockResolvedValue(undefined),
+          api: {
+            getFile: vi.fn().mockResolvedValue({
+              file_id: 'doc-id',
+              file_size: 200,
+              download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
+            }),
+          },
+          message: { document: { file_id: 'doc-id', file_size: 200, mime_type: 'image/jpeg' } },
+        } as unknown as CustomContext
+
+        await handler.events['msg:document']!(docCtx)
+
+        expect(vi.mocked(fs.stat)).toHaveBeenLastCalledWith('/tmp/input.jpg')
+        expect(docCtx.reply).not.toHaveBeenCalledWith(expect.stringContaining('Image Info'))
       })
 
       it('should ignore non-image documents', async () => {
