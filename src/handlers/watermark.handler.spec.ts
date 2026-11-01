@@ -904,6 +904,34 @@ describe(WatermarkHandler.name, () => {
       ])
     })
 
+    it('should place the watermark correctly on an EXIF-rotated image', async () => {
+      prepareProcessing([{ id: 'base-1', width: 100, height: 50 }], {
+        positions: ['bottom-right'],
+        scale: 'auto',
+      })
+      // Simulate EXIF rotation: stored dimensions (100x50) vs auto-oriented (50x100)
+      metadata().set('/tmp/base-1.jpg', {
+        width: 100,
+        height: 50,
+        format: 'jpeg',
+        hasAlpha: false,
+        autoOrient: { width: 50, height: 100 },
+      })
+      setCallback('watermark_scale_auto')
+
+      await handler.events.callback_query!(ctx)
+
+      const composeInstance = vi.mocked(sharp).mock.results.map(result => result.value as any).find(instance => instance.composite.mock.calls.length > 0)
+
+      expect(composeInstance.composite.mock.calls[0][0]).toEqual([
+        {
+          input: expect.any(Buffer),
+          left: expect.any(Number),
+          top: expect.any(Number),
+        },
+      ])
+    })
+
     it('should send successful photos and warn about partial failures', async () => {
       prepareProcessing([
         { id: 'base-1' },
