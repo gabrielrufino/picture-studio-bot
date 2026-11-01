@@ -31,8 +31,14 @@ export function usageLimitMiddleware(handler: BaseHandler) {
       }))
     }
     else if (user.plan_type === PlanTypeEnum.Pro && isPlanExpired(user.plan_started_at)) {
-      await userRepository.updateById(user._id, { plan_type: PlanTypeEnum.Free, plan_started_at: null })
-      user.plan_type = PlanTypeEnum.Free
+      const downgraded = await userRepository.updateById(
+        user._id,
+        { plan_type: PlanTypeEnum.Free, plan_started_at: null },
+        { filter: { plan_started_at: user.plan_started_at } },
+      )
+      if (downgraded) {
+        user.plan_type = PlanTypeEnum.Free
+      }
     }
 
     ctx.user = user

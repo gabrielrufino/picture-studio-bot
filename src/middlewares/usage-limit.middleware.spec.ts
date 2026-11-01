@@ -166,6 +166,7 @@ describe(usageLimitMiddleware.name, () => {
       last_usage_date: '2024-01-15',
     }
     vi.mocked(userRepository.findByTelegramId).mockResolvedValueOnce(user as any)
+    vi.mocked(userRepository.updateById).mockResolvedValueOnce({ ...user, plan_type: PlanTypeEnum.Free } as any)
 
     const middleware = usageLimitMiddleware(handler)
     await middleware(ctx, next)
@@ -173,7 +174,29 @@ describe(usageLimitMiddleware.name, () => {
     expect(userRepository.updateById).toHaveBeenCalledWith('user-id', {
       plan_type: PlanTypeEnum.Free,
       plan_started_at: null,
-    })
+    }, { filter: { plan_started_at: expiredDate } })
+    expect(next).toHaveBeenCalled()
+  })
+
+  it('should keep Pro when the expired downgrade does not match a concurrent renewal', async () => {
+    const expiredDate = new Date()
+    expiredDate.setDate(expiredDate.getDate() - 31)
+
+    const user = {
+      _id: 'user-id',
+      plan_type: PlanTypeEnum.Pro,
+      plan_started_at: expiredDate,
+      is_blocked: false,
+      daily_usage_count: 0,
+      last_usage_date: '2024-01-15',
+    }
+    vi.mocked(userRepository.findByTelegramId).mockResolvedValueOnce(user as any)
+    vi.mocked(userRepository.updateById).mockResolvedValueOnce(null)
+
+    const middleware = usageLimitMiddleware(handler)
+    await middleware(ctx, next)
+
+    expect(ctx.user.plan_type).toBe(PlanTypeEnum.Pro)
     expect(next).toHaveBeenCalled()
   })
 
