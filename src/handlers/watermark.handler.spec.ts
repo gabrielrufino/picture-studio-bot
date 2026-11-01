@@ -161,6 +161,7 @@ describe(WatermarkHandler.name, () => {
       watermark_file_id: 'mark',
       positions: [],
       scale: 'auto',
+      callback_message_id: 100,
       ...partial,
     })
     downloads.set('mark', '/tmp/mark.png')
@@ -648,7 +649,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should toggle a corner and update the keyboard', async () => {
       prepareConfigured()
-      setCallback('watermark_toggle_tl')
+      setCallback('watermark_toggle_tl', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -665,7 +666,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should remove an already selected corner', async () => {
       prepareConfigured({ positions: ['top-left', 'bottom-right'] })
-      setCallback('watermark_toggle_tl')
+      setCallback('watermark_toggle_tl', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -674,10 +675,10 @@ describe(WatermarkHandler.name, () => {
 
     it('should keep corners in canonical order', async () => {
       prepareConfigured()
-      setCallback('watermark_toggle_br')
+      setCallback('watermark_toggle_br', 100)
       await handler.events.callback_query!(ctx)
 
-      setCallback('watermark_toggle_tl')
+      setCallback('watermark_toggle_tl', 100)
       await handler.events.callback_query!(ctx)
 
       expect(params().positions).toEqual(['top-left', 'bottom-right'])
@@ -685,7 +686,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should alert when applying without corners', async () => {
       prepareConfigured()
-      setCallback('watermark_apply')
+      setCallback('watermark_apply', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -698,7 +699,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should move to the scale step after applying', async () => {
       prepareConfigured({ positions: ['top-left'] })
-      setCallback('watermark_apply')
+      setCallback('watermark_apply', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -710,7 +711,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should go back from scale to corners', async () => {
       prepareConfigured({ step: 'scale', positions: ['bottom-left'] })
-      setCallback('watermark_back')
+      setCallback('watermark_back', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -722,7 +723,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should cancel and reset the session', async () => {
       prepareConfigured()
-      setCallback('watermark_cancel')
+      setCallback('watermark_cancel', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -791,6 +792,33 @@ describe(WatermarkHandler.name, () => {
       expect(ctx.editMessageText).not.toHaveBeenCalled()
     })
 
+    it('should reject corner and apply callbacks when callback_message_id is missing', async () => {
+      prepareConfigured({ callback_message_id: undefined })
+      setCallback('watermark_toggle_tl')
+
+      await handler.events.callback_query!(ctx)
+
+      expect(params().positions).toEqual([])
+      expect(ctx.answerCallbackQuery).toHaveBeenCalled()
+      expect(ctx.editMessageReplyMarkup).not.toHaveBeenCalled()
+
+      setCallback('watermark_apply')
+      await handler.events.callback_query!(ctx)
+
+      expect(params().step).toBe('positions')
+      expect(ctx.editMessageText).not.toHaveBeenCalled()
+    })
+
+    it('should reject cancel callback when callback_message_id is missing', async () => {
+      prepareConfigured({ callback_message_id: undefined })
+      setCallback('watermark_cancel')
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.session.command).toBe(CommandEnum.Watermark)
+      expect(ctx.editMessageText).not.toHaveBeenCalled()
+    })
+
     it('should ignore unrelated callbacks', async () => {
       setCallback('something_else')
 
@@ -837,7 +865,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should ignore a scale callback outside the scale step', async () => {
       prepareConfigured({ positions: ['top-left'] })
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -851,7 +879,7 @@ describe(WatermarkHandler.name, () => {
   describe('processing', () => {
     it('should send a single document for one photo and count one usage', async () => {
       prepareProcessing([{ id: 'base-1' }])
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -872,7 +900,7 @@ describe(WatermarkHandler.name, () => {
         { id: 'base-2' },
         { id: 'base-3' },
       ])
-      setCallback('watermark_scale_auto')
+      setCallback('watermark_scale_auto', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -896,7 +924,7 @@ describe(WatermarkHandler.name, () => {
       prepareProcessing(
         Array.from({ length: 11 }, (_, index) => ({ id: `base-${index + 1}` })),
       )
-      setCallback('watermark_scale_large')
+      setCallback('watermark_scale_large', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -914,7 +942,7 @@ describe(WatermarkHandler.name, () => {
         { id: 'base-1', format: 'jpeg' },
         { id: 'base-2', format: 'png' },
       ])
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -933,7 +961,7 @@ describe(WatermarkHandler.name, () => {
       prepareProcessing([
         { id: 'base-1', format: 'heif', compression: 'av1' },
       ])
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -952,7 +980,7 @@ describe(WatermarkHandler.name, () => {
         { id: 'base-1', width: 1000, height: 800 },
         { id: 'base-2', width: 2000, height: 800 },
       ])
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -972,7 +1000,7 @@ describe(WatermarkHandler.name, () => {
         positions: ['bottom-right'],
         scale: 'auto',
       })
-      setCallback('watermark_scale_auto')
+      setCallback('watermark_scale_auto', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1000,7 +1028,7 @@ describe(WatermarkHandler.name, () => {
         hasAlpha: false,
         autoOrient: { width: 50, height: 100 },
       })
-      setCallback('watermark_scale_auto')
+      setCallback('watermark_scale_auto', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1031,7 +1059,7 @@ describe(WatermarkHandler.name, () => {
           download: vi.fn().mockResolvedValue(downloads.get(fileId) ?? `/tmp/${fileId}`),
         }
       }
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1061,7 +1089,7 @@ describe(WatermarkHandler.name, () => {
           download: vi.fn().mockResolvedValue(downloads.get(fileId) ?? `/tmp/${fileId}`),
         }
       }
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1078,7 +1106,7 @@ describe(WatermarkHandler.name, () => {
         { id: 'base-1' },
       ])
       metadata().set('/tmp/mark.png', new Error('invalid'))
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1096,7 +1124,7 @@ describe(WatermarkHandler.name, () => {
         { id: 'base-2' },
         { id: 'base-3' },
       ])
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1108,7 +1136,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should clean up inputs, outputs and the watermark file', async () => {
       prepareProcessing([{ id: 'base-1' }])
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1123,7 +1151,7 @@ describe(WatermarkHandler.name, () => {
     it('should refund the usage when usage cannot be reserved', async () => {
       prepareProcessing([{ id: 'base-1' }])
       vi.mocked(userRepository.incrementUsage).mockResolvedValueOnce(null)
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1139,7 +1167,7 @@ describe(WatermarkHandler.name, () => {
         { id: 'base-3' },
         { id: 'base-4' },
       ])
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1151,7 +1179,7 @@ describe(WatermarkHandler.name, () => {
       vi.mocked(fs.stat).mockImplementation(async (path: any) => ({
         size: String(path).includes('base-1') ? 20 * 1024 * 1024 : 100,
       }) as any)
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -1169,7 +1197,7 @@ describe(WatermarkHandler.name, () => {
         hasAlpha: true,
         autoOrient: { width: 1, height: 100000 },
       })
-      setCallback('watermark_scale_medium')
+      setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
 

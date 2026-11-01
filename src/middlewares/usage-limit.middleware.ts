@@ -39,6 +39,12 @@ export function usageLimitMiddleware(handler: BaseHandler) {
       if (downgraded) {
         user.plan_type = PlanTypeEnum.Free
       }
+      else {
+        const refreshed = await userRepository.findByTelegramId(userId!)
+        if (refreshed) {
+          user = refreshed
+        }
+      }
     }
 
     ctx.user = user

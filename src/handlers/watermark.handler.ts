@@ -286,7 +286,11 @@ export class WatermarkHandler extends BaseHandler {
 
   private isCurrentKeyboard(ctx: CustomContext, params: WatermarkParams): boolean {
     const storedMessageId = params.callback_message_id
-    return !storedMessageId || ctx.callbackQuery?.message?.message_id === storedMessageId
+    if (!storedMessageId) {
+      return false
+    }
+
+    return ctx.callbackQuery?.message?.message_id === storedMessageId
   }
 
   private isSupportedMimeType(mimeType?: string): boolean {
@@ -578,7 +582,6 @@ export class WatermarkHandler extends BaseHandler {
   }
 
   private async handleCancel(ctx: CustomContext): Promise<void> {
-    const callbackMessageId = ctx.callbackQuery?.message?.message_id
     const params = this.getParams(ctx)
 
     if (params.step !== 'positions' && params.step !== 'scale') {
@@ -587,7 +590,7 @@ export class WatermarkHandler extends BaseHandler {
     }
 
     const storedMessageId = params.callback_message_id as number | undefined
-    if (storedMessageId && callbackMessageId !== storedMessageId) {
+    if (!storedMessageId || ctx.callbackQuery?.message?.message_id !== storedMessageId) {
       await ctx.answerCallbackQuery()
       return
     }

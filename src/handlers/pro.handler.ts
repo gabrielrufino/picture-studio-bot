@@ -72,11 +72,18 @@ export class ProHandler extends BaseHandler {
         )
         if (!updated) {
           const refreshed = await this.userRepository.findByTelegramId(userId)
-          const currentStartedAt = refreshed?.plan_started_at ?? planStartedAt
+          if (refreshed?.plan_type !== PlanTypeEnum.Pro) {
+            await ctx.reply(ctx.t('pro_expired'))
+            await this.resetSession(ctx)
+            return
+          }
+
+          const currentStartedAt = refreshed.plan_started_at ?? planStartedAt
           await ctx.reply(ctx.t('subscription_info').replace('{date}', currentStartedAt ? new Date(currentStartedAt).toLocaleDateString(locale) : '-'), { parse_mode: 'HTML' })
           await this.resetSession(ctx)
           return
         }
+
         await ctx.reply(ctx.t('pro_expired'))
         await this.resetSession(ctx)
         return

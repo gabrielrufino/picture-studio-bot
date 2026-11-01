@@ -18,8 +18,8 @@ describe(connectToTestDatabase.name, () => {
   })
 
   it('should return different databases for different names', () => {
-    expect(clientA.database.databaseName).toBe('pdf_studio_test_isolation_a')
-    expect(clientB.database.databaseName).toBe('pdf_studio_test_isolation_b')
+    expect(clientA.database.databaseName.startsWith('pdf_studio_test_isolation_a_')).toBe(true)
+    expect(clientB.database.databaseName.startsWith('pdf_studio_test_isolation_b_')).toBe(true)
     expect(clientA.database.databaseName).not.toBe(clientB.database.databaseName)
   })
 })
