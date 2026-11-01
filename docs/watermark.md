@@ -4,7 +4,7 @@ Business and technical documentation for the Picture Studio Bot watermark featur
 
 - **Command:** `/watermark`
 - **Handler:** `src/handlers/watermark.handler.ts` (`WatermarkHandler`)
-- **Last reviewed:** 2026-10-25
+- **Last reviewed:** 2026-11-01
 
 > This document is the reference for the feature. Any change affecting the behavior described here must update it in the same change (see the rule in `AGENTS.md`).
 
@@ -161,7 +161,7 @@ States:
 | `positions` | Choosing corners | `callback_query` (toggle, `watermark_apply`, `watermark_cancel`) |
 | `scale` | Choosing size | `callback_query` (scale, `watermark_back`, `watermark_cancel`) |
 
-Callbacks are ignored when the `step` does not match, preventing out-of-order actions (e.g., double clicks, stale buttons).
+Callbacks are ignored when the `step` does not match or when the pressed message is not the keyboard tracked in `params.callback_message_id` (stale keyboards from an earlier batch), preventing out-of-order actions (e.g., double clicks, stale buttons).
 
 ### 2.4 Session data model
 
@@ -175,6 +175,7 @@ Callbacks are ignored when the `step` does not match, preventing out-of-order ac
 | `positions` | `WatermarkCorner[]` | `[]` | `top-left`, `top-right`, `bottom-left`, `bottom-right` |
 | `scale` | `auto \| small \| medium \| large` | `auto` | Chosen scale |
 | `limit_warned` | `boolean?` | — | Ensures a single limit warning per batch |
+| `callback_message_id` | `number?` | — | Message ID of the keyboard shown for the active batch; ignored callbacks come from other messages |
 | `paths` | `string[]?` | — | Reserved for temporary file cleanup by `BaseHandler` |
 
 Derived schemas:
@@ -196,11 +197,13 @@ Session validation uses `WatermarkParamsSchema.safeParse`; failures throw `Sessi
 | Callback data | Action |
 |---|---|
 | `watermark_ready` | Ends collection (with an alert if there are no photos) |
-| `watermark_cancel` | Resets the session and edits the message to "cancelled" |
+| `watermark_cancel` | Resets the session and edits the message to "cancelled" (only when the callback comes from the tracked keyboard) |
 | `watermark_toggle_tl` / `_tr` / `_bl` / `_br` | Toggles the matching corner and updates the keyboard |
 | `watermark_apply` | Validates at least one corner and moves to `scale` |
 | `watermark_back` | Goes back from `scale` to `positions` |
 | `watermark_scale_auto` / `_small` / `_medium` / `_large` | Starts processing with the chosen scale |
+
+Every callback that acts on the batch is ignored unless the pressed message matches `params.callback_message_id`; the tracked ID is set from the positions keyboard message when the mark is accepted.
 
 ### 2.6 Collection and limits
 
@@ -217,10 +220,11 @@ Session validation uses `WatermarkParamsSchema.safeParse`; failures throw `Sessi
 
 1. Requires `msg:document` and a MIME type in `SUPPORTED_MIME_TYPES` (`image/jpeg`, `image/png`, `image/webp`, `image/avif`, `image/tiff`).
 2. Applies `checkLimits` using `file_size`.
-3. Downloads the file (`ctx.api.getFile(...).download()`), validates it with `sharp.metadata()`, and requires `width`, `height`, and a resolvable output format.
-4. Saves `watermark_file_id`, truncates the bases to the limit, and switches to `step: 'positions'`.
-5. Warns about missing transparency when `metadata.hasAlpha` is false.
-6. Removes the downloaded file in `finally` (the mark is downloaded again during processing).
+3. Downloads the file (`ctx.api.getFile(...).download()`), then re-applies `checkLimits` using the actual downloaded byte size (`fs.stat`), covering documents whose `file_size` Telegram omits.
+4. Validates it with `sharp.metadata()` and requires `width`, `height`, and a resolvable output format.
+5. Saves `watermark_file_id`, truncates the bases to the limit, and switches to `step: 'positions'`.
+6. Warns about missing transparency when `metadata.hasAlpha` is false.
+7. Removes the downloaded file in `finally` (the mark is downloaded again during processing).
 
 Image errors become `InvalidWatermarkError` → `watermark_invalid_file` message.
 
@@ -233,7 +237,7 @@ Image errors become `InvalidWatermarkError` → `watermark_invalid_file` message
 1. Wraps everything in `runWithUsage`, which **reserves 1 operation** before processing and **refunds** it if nothing is delivered.
 2. Downloads the mark once per batch and reads the buffer; dimensions use `autoOrient` when available.
 3. Splits the bases with `chunk(..., WATERMARK_MEDIA_GROUP_SIZE)` (10).
-4. Processes photos **sequentially** within each chunk; individual failures are logged and counted.
+4. Processes photos **sequentially** within each chunk; individual failures are logged and counted. Each downloaded photo is re-checked against the plan limit using its actual byte size before processing.
 5. Sends the chunk: 1 item → `replyWithDocument`; 2–10 → `replyWithMediaGroup` with the caption on the first item.
 6. On the first successful delivery, calls `markDelivered()`, confirming the operation consumption.
 7. Removes the chunk's output files, updates progress (`watermark_progress`), and waits `chunkDelayMs = 1000 ms` between chunks (except the last).
@@ -265,6 +269,7 @@ targetHeight = max(1, round(markHeight * targetWidth / markWidth))
 
    - `targetWidth` never exceeds the mark's original width (no upscaling).
    - Height is capped at 30% of the base height (`MAX_HEIGHT_RATIO`).
+   - If no aspect-preserving size fits the cap (`maxByHeight < 1`), the mark is rejected with `InvalidWatermarkError` instead of being distorted.
 4. Margin:
 
 ```text
@@ -295,7 +300,7 @@ Relevant constants: `SCALE_RATIOS`, `AUTO_SCALE_RATIO = 0.15`, `MAX_HEIGHT_RATIO
 | Error | Origin | Handling |
 |---|---|---|
 | `LimitExceededError` | `checkLimits` | Silent (warning already sent) |
-| `InvalidWatermarkError` | Invalid mark/missing dimensions | `watermark_invalid_file`; refund if before delivery |
+| `InvalidWatermarkError` | Invalid mark/missing dimensions/unsizable mark | `watermark_invalid_file`; refund if before delivery |
 | `InvalidFileError` | Invalid photo or none processed | `watermark_no_valid_photos` in `processBatch` |
 | `SessionValidationError` | Invalid session | Rethrown; `src/index.ts` warns and clears the session |
 | `UserNotFoundError` | Missing `ctx.user` | Generic via `safely` |
@@ -324,6 +329,7 @@ Logs via Pino (`this.logger`), with `fileId`/`path` context:
 - `/ready` with and without photos, with `@bot`, unrelated text, and wrong step;
 - mark validation, transparency, invalid MIME type, invalid image, and missing dimensions;
 - ready, toggle, canonical order, apply without corners, back, cancel, and callbacks outside the step;
+- stale keyboards: callbacks from a message other than the tracked keyboard are ignored;
 - sending 1 photo as a document, 2–10 as an album, 11 in two sends;
 - format preservation, AVIF, per-photo sizing, and positioning;
 - partial failures, refunds, mark vs. photo errors, progress, and temporary file cleanup;

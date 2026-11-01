@@ -16,6 +16,7 @@ vi.mock('node:fs/promises', () => ({
     writeFile: vi.fn().mockResolvedValue(undefined),
     rm: vi.fn().mockResolvedValue(undefined),
     readFile: vi.fn().mockResolvedValue(Buffer.from('mark data')),
+    stat: vi.fn().mockResolvedValue({ size: 100 }),
   },
 }))
 
@@ -121,8 +122,11 @@ describe(WatermarkHandler.name, () => {
     ;(ctx as any).message = { text } as any
   }
 
-  function setCallback(data: string) {
-    ;(ctx as any).callbackQuery = { data } as any
+  function setCallback(data: string, messageId?: number) {
+    ;(ctx as any).callbackQuery = {
+      data,
+      ...(messageId !== undefined ? { message: { message_id: messageId } } : {}),
+    } as any
   }
 
   function setBaseMetadata(fileId: string, options: {
@@ -226,7 +230,7 @@ describe(WatermarkHandler.name, () => {
       user: { plan_type: PlanTypeEnum.Free },
       from: { id: 1 },
       me: { username: 'picture_studio_bot' },
-      reply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue({ message_id: 100 }),
       editMessageText: vi.fn().mockResolvedValue(undefined),
       editMessageReplyMarkup: vi.fn().mockResolvedValue(undefined),
       answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
@@ -510,10 +514,30 @@ describe(WatermarkHandler.name, () => {
 
       expect(params().step).toBe('positions')
       expect(params().watermark_file_id).toBe('mark')
+      expect(params().callback_message_id).toBe(100)
       expect(ctx.reply).toHaveBeenCalledWith('watermark_choose_positions', {
         reply_markup: expect.any(InlineKeyboard),
       })
       expect(fs.rm).toHaveBeenCalledWith('/tmp/mark.png', { force: true })
+    })
+
+    it('should enforce the limit against the downloaded watermark size', async () => {
+      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setDocument('mark', 'image/png')
+      downloads.set('mark', '/tmp/mark.png')
+      metadata().set('/tmp/mark.png', {
+        width: 200,
+        height: 100,
+        format: 'png',
+        hasAlpha: true,
+        autoOrient: { width: 200, height: 100 },
+      })
+      vi.mocked(fs.stat).mockResolvedValueOnce({ size: 20 * 1024 * 1024 } as any)
+
+      await handler.events['msg:document']!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('free_limit_reached')
+      expect(params().step).toBe('awaiting_watermark')
     })
 
     it('should warn when the watermark has no transparency', async () => {
@@ -706,6 +730,65 @@ describe(WatermarkHandler.name, () => {
       expect(ctx.session.command).toBeNull()
       expect(ctx.session.params).toBeNull()
       expect(ctx.editMessageText).toHaveBeenCalledWith('watermark_cancelled')
+    })
+
+    it('should accept a callback from the current keyboard', async () => {
+      prepareConfigured({ positions: ['top-left'], callback_message_id: 100 })
+      setCallback('watermark_apply', 100)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(params().step).toBe('scale')
+    })
+
+    it('should ignore a corner callback from an older keyboard', async () => {
+      prepareConfigured({ callback_message_id: 100 })
+      setCallback('watermark_toggle_tl', 999)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(params().positions).toEqual([])
+      expect(ctx.editMessageReplyMarkup).not.toHaveBeenCalled()
+    })
+
+    it('should ignore an apply callback from an older keyboard', async () => {
+      prepareConfigured({ positions: ['top-left'], callback_message_id: 100 })
+      setCallback('watermark_apply', 999)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(params().step).toBe('positions')
+      expect(ctx.editMessageText).not.toHaveBeenCalled()
+    })
+
+    it('should ignore a back callback from an older keyboard', async () => {
+      prepareConfigured({ step: 'scale', positions: ['top-left'], callback_message_id: 100 })
+      setCallback('watermark_back', 999)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(params().step).toBe('scale')
+      expect(ctx.editMessageText).not.toHaveBeenCalled()
+    })
+
+    it('should ignore a scale callback from an older keyboard', async () => {
+      prepareConfigured({ step: 'scale', positions: ['top-left'], callback_message_id: 100 })
+      setCallback('watermark_scale_medium', 999)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(userRepository.incrementUsage).not.toHaveBeenCalled()
+      expect(params().step).toBe('scale')
+    })
+
+    it('should ignore a cancel callback from an older keyboard', async () => {
+      prepareConfigured({ callback_message_id: 100 })
+      setCallback('watermark_cancel', 999)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.session.command).toBe(CommandEnum.Watermark)
+      expect(ctx.editMessageText).not.toHaveBeenCalled()
     })
 
     it('should ignore unrelated callbacks', async () => {
@@ -1061,6 +1144,39 @@ describe(WatermarkHandler.name, () => {
       await handler.events.callback_query!(ctx)
 
       expect(sentMedia()).toHaveLength(3)
+    })
+
+    it('should enforce the limit against the downloaded photo size', async () => {
+      prepareProcessing([{ id: 'base-1' }])
+      vi.mocked(fs.stat).mockImplementation(async (path: any) => ({
+        size: String(path).includes('base-1') ? 20 * 1024 * 1024 : 100,
+      }) as any)
+      setCallback('watermark_scale_medium')
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('free_limit_reached')
+      expect(ctx.replyWithDocument).not.toHaveBeenCalled()
+      expect(userRepository.decrementUsage).toHaveBeenCalledWith(1)
+    })
+
+    it('should not distort a mark too tall to fit within the height cap', async () => {
+      prepareProcessing([{ id: 'base-1', width: 1000, height: 800 }])
+      metadata().set('/tmp/mark.png', {
+        width: 1,
+        height: 100000,
+        format: 'png',
+        hasAlpha: true,
+        autoOrient: { width: 1, height: 100000 },
+      })
+      setCallback('watermark_scale_medium')
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.replyWithDocument).not.toHaveBeenCalled()
+      expect(ctx.replyWithMediaGroup).not.toHaveBeenCalled()
+      expect(ctx.reply).toHaveBeenCalledWith('watermark_no_valid_photos')
+      expect(userRepository.decrementUsage).toHaveBeenCalledWith(1)
     })
   })
 })

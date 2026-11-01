@@ -284,6 +284,11 @@ export class WatermarkHandler extends BaseHandler {
     return PHOTOS_PER_OPERATION_LIMITS[plan]
   }
 
+  private isCurrentKeyboard(ctx: CustomContext, params: WatermarkParams): boolean {
+    const storedMessageId = params.callback_message_id
+    return !storedMessageId || ctx.callbackQuery?.message?.message_id === storedMessageId
+  }
+
   private isSupportedMimeType(mimeType?: string): boolean {
     return Boolean(mimeType && SUPPORTED_MIME_TYPES.has(mimeType))
   }
@@ -465,6 +470,9 @@ export class WatermarkHandler extends BaseHandler {
         throw new Error('Failed to download watermark file')
       }
 
+      const { size } = await fs.stat(watermarkPath)
+      await this.checkLimits(ctx, { fileSize: size })
+
       const metadata = await this.validateWatermarkFile(watermarkPath)
 
       const configured = this.validateParams(WatermarkConfiguredParamsSchema, {
@@ -477,16 +485,15 @@ export class WatermarkHandler extends BaseHandler {
         ? ctx.t('watermark_choose_positions')
         : `${ctx.t('watermark_choose_positions')}\n\n${ctx.t('watermark_no_transparency')}`
 
-      await ctx.reply(text, {
+      const reply = await ctx.reply(text, {
         reply_markup: this.positionsKeyboard(ctx, []),
       })
 
-      const message = ctx.message
       ctx.session.params = {
         ...configured,
         step: 'positions',
         positions: [],
-        callback_message_id: message?.message_id,
+        callback_message_id: reply.message_id,
       }
     }
     finally {
@@ -501,7 +508,7 @@ export class WatermarkHandler extends BaseHandler {
   private async toggleCorner(ctx: CustomContext, corner: WatermarkCorner): Promise<void> {
     const sessionParams = this.getParams(ctx)
 
-    if (sessionParams.step !== 'positions') {
+    if (sessionParams.step !== 'positions' || !this.isCurrentKeyboard(ctx, sessionParams)) {
       await ctx.answerCallbackQuery()
       return
     }
@@ -529,7 +536,7 @@ export class WatermarkHandler extends BaseHandler {
   private async apply(ctx: CustomContext): Promise<void> {
     const sessionParams = this.getParams(ctx)
 
-    if (sessionParams.step !== 'positions') {
+    if (sessionParams.step !== 'positions' || !this.isCurrentKeyboard(ctx, sessionParams)) {
       await ctx.answerCallbackQuery()
       return
     }
@@ -555,7 +562,7 @@ export class WatermarkHandler extends BaseHandler {
   private async back(ctx: CustomContext): Promise<void> {
     const sessionParams = this.getParams(ctx)
 
-    if (sessionParams.step !== 'scale') {
+    if (sessionParams.step !== 'scale' || !this.isCurrentKeyboard(ctx, sessionParams)) {
       await ctx.answerCallbackQuery()
       return
     }
@@ -596,7 +603,7 @@ export class WatermarkHandler extends BaseHandler {
   private async process(ctx: CustomContext, scale: WatermarkScale): Promise<void> {
     const sessionParams = this.getParams(ctx)
 
-    if (sessionParams.step !== 'scale') {
+    if (sessionParams.step !== 'scale' || !this.isCurrentKeyboard(ctx, sessionParams)) {
       await ctx.answerCallbackQuery()
       return
     }
@@ -780,6 +787,9 @@ export class WatermarkHandler extends BaseHandler {
         throw new Error('Failed to download photo')
       }
 
+      const { size } = await fs.stat(inputPath)
+      await this.checkLimits(ctx, { fileSize: size })
+
       const metadata = await this.validateImageFile(inputPath)
 
       if (!metadata.width || !metadata.height) {
@@ -837,21 +847,15 @@ export class WatermarkHandler extends BaseHandler {
     const ratio = scale === 'auto' ? AUTO_SCALE_RATIO : SCALE_RATIOS[scale]
     const maxByHeight = Math.floor((baseHeight * MAX_HEIGHT_RATIO) * (markWidth / markHeight))
 
-    let targetWidth = Math.max(
+    if (maxByHeight < 1) {
+      throw new InvalidWatermarkError()
+    }
+
+    const targetWidth = Math.max(
       1,
       Math.min(Math.round(baseWidth * ratio), maxByHeight, markWidth),
     )
-    let targetHeight = Math.max(1, Math.round((markHeight * targetWidth) / markWidth))
-
-    if (targetHeight > baseHeight) {
-      targetHeight = baseHeight
-      targetWidth = Math.max(1, Math.round((markWidth * targetHeight) / markHeight))
-    }
-
-    if (targetWidth > baseWidth) {
-      targetWidth = baseWidth
-      targetHeight = Math.max(1, Math.round((markHeight * targetWidth) / markWidth))
-    }
+    const targetHeight = Math.max(1, Math.round((markHeight * targetWidth) / markWidth))
 
     const margin = Math.max(
       0,
