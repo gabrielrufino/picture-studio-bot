@@ -17,5 +17,6 @@ export async function setup(): Promise<() => Promise<void>> {
       await instance.stop()
       instance = undefined
     }
+    delete process.env.MONGODB_CONNECTION_STRING
   }
 }
