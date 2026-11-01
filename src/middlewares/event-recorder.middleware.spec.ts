@@ -93,6 +93,29 @@ describe(eventRecorderMiddleware.name, () => {
     })])
   })
 
+  it('should record CommandInfo when the command is addressed to this bot', async () => {
+    const ctx: any = {
+      from: { id: 123 },
+      me: { username: 'picture_studio_bot' },
+      message: { text: '/info@picture_studio_bot' },
+    }
+    await eventRecorderMiddleware(ctx, next)
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
+      event: EventEnum.CommandInfo,
+      telegram_user: { id: 123 },
+    })])
+  })
+
+  it('should not record a command addressed to another bot', async () => {
+    const ctx: any = {
+      from: { id: 123 },
+      me: { username: 'picture_studio_bot' },
+      message: { text: '/info@other_bot' },
+    }
+    await eventRecorderMiddleware(ctx, next)
+    expect(eventRepository.insertMany).not.toHaveBeenCalled()
+  })
+
   it('should record ButtonInfo if callbackQuery data is info', async () => {
     const ctx: any = {
       from: { id: 123 },

@@ -36,8 +36,9 @@ export async function eventRecorderMiddleware(ctx: CustomContext, next: NextFunc
 
   // Check for command
   if (ctx.message?.text?.startsWith('/')) {
-    const rawCommand = ctx.message.text.split(' ')[0].substring(1)
-    const eventValue = commandToEventMap.get(rawCommand)
+    const [rawCommand, username] = ctx.message.text.split(' ')[0].substring(1).split('@')
+    const isOwnCommand = !username || username.toLowerCase() === ctx.me?.username?.toLowerCase()
+    const eventValue = isOwnCommand ? commandToEventMap.get(rawCommand) : undefined
 
     if (eventValue) {
       events.push(new EventEntity({
