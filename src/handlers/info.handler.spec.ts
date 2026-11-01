@@ -5,6 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CommandEnum } from '@/enums/command.enum'
 import { InvalidFileError } from '@/errors/invalid-file.error'
 import { LimitExceededError } from '@/errors/limit-exceeded.error'
+import en from '@/locales/en.json'
+import es from '@/locales/es.json'
+import pt from '@/locales/pt.json'
 import { InfoHandler } from './info.handler'
 
 const INFO_RESULT_TEMPLATE = 'ℹ️ <b>Image Info</b>\n\n📐 Dimensions: {width}x{height}\n🎨 Format: {format}\n📦 File size: {size}'
@@ -85,6 +88,19 @@ describe(InfoHandler.name, () => {
       expect((handler as any).logger.error).not.toHaveBeenCalled()
       expect(ctx.session.command).toBe(CommandEnum.Info)
       expect(ctx.reply).toHaveBeenCalledWith('info_send_file')
+    })
+  })
+
+  describe('locales', () => {
+    it.each([
+      { locale: 'en', template: en.info_result },
+      { locale: 'es', template: es.info_result },
+      { locale: 'pt', template: pt.info_result },
+    ])('should keep required placeholders in $locale info_result', ({ template }) => {
+      expect(template).toContain('{width}')
+      expect(template).toContain('{height}')
+      expect(template).toContain('{format}')
+      expect(template).toContain('{size}')
     })
   })
 
@@ -191,7 +207,7 @@ describe(InfoHandler.name, () => {
       })
 
       it('should not reply with info result when downloaded document exceeds limits', async () => {
-        vi.spyOn(handler as any, 'checkLimits')
+        const checkLimitsSpy = vi.spyOn(handler as any, 'checkLimits')
           .mockResolvedValueOnce(undefined)
           .mockRejectedValueOnce(new LimitExceededError())
 
@@ -215,6 +231,7 @@ describe(InfoHandler.name, () => {
         await handler.events['msg:document']!(docCtx)
 
         expect(vi.mocked(fs.stat)).toHaveBeenLastCalledWith('/tmp/input.jpg')
+        expect(checkLimitsSpy).toHaveBeenLastCalledWith(docCtx, { fileSize: 102400 })
         expect(docCtx.reply).not.toHaveBeenCalledWith(expect.stringContaining('Image Info'))
       })
 

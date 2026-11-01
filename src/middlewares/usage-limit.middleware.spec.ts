@@ -176,6 +176,7 @@ describe(usageLimitMiddleware.name, () => {
       plan_started_at: null,
     }, { filter: { plan_started_at: expiredDate } })
     expect(next).toHaveBeenCalled()
+    expect(ctx.user.plan_type).toBe(PlanTypeEnum.Free)
   })
 
   it('should keep Pro when the expired downgrade does not match a concurrent renewal', async () => {

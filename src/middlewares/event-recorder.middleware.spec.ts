@@ -100,6 +100,7 @@ describe(eventRecorderMiddleware.name, () => {
       message: { text: '/info@picture_studio_bot' },
     }
     await eventRecorderMiddleware(ctx, next)
+    expect(next).toHaveBeenCalled()
     expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
       event: EventEnum.CommandInfo,
       telegram_user: { id: 123 },
@@ -113,6 +114,7 @@ describe(eventRecorderMiddleware.name, () => {
       message: { text: '/info@other_bot' },
     }
     await eventRecorderMiddleware(ctx, next)
+    expect(next).toHaveBeenCalled()
     expect(eventRepository.insertMany).not.toHaveBeenCalled()
   })
 

@@ -792,6 +792,17 @@ describe(WatermarkHandler.name, () => {
       expect(ctx.editMessageText).not.toHaveBeenCalled()
     })
 
+    it('should cancel when the callback matches the stored keyboard', async () => {
+      prepareConfigured({ callback_message_id: 100 })
+      setCallback('watermark_cancel', 100)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.session.command).toBeNull()
+      expect(ctx.session.params).toBeNull()
+      expect(ctx.editMessageText).toHaveBeenCalledWith('watermark_cancelled')
+    })
+
     it('should reject corner and apply callbacks when callback_message_id is missing', async () => {
       prepareConfigured({ callback_message_id: undefined })
       setCallback('watermark_toggle_tl')
@@ -815,6 +826,7 @@ describe(WatermarkHandler.name, () => {
 
       await handler.events.callback_query!(ctx)
 
+      expect(ctx.answerCallbackQuery).toHaveBeenCalled()
       expect(ctx.session.command).toBe(CommandEnum.Watermark)
       expect(ctx.editMessageText).not.toHaveBeenCalled()
     })
@@ -1196,6 +1208,25 @@ describe(WatermarkHandler.name, () => {
         format: 'png',
         hasAlpha: true,
         autoOrient: { width: 1, height: 100000 },
+      })
+      setCallback('watermark_scale_medium', 100)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.replyWithDocument).not.toHaveBeenCalled()
+      expect(ctx.replyWithMediaGroup).not.toHaveBeenCalled()
+      expect(ctx.reply).toHaveBeenCalledWith('watermark_no_valid_photos')
+      expect(userRepository.decrementUsage).toHaveBeenCalledWith(1)
+    })
+
+    it('should reject a base image shorter than the minimum watermark height cap', async () => {
+      prepareProcessing([{ id: 'base-1', width: 10, height: 3 }])
+      metadata().set('/tmp/mark.png', {
+        width: 2,
+        height: 1,
+        format: 'png',
+        hasAlpha: true,
+        autoOrient: { width: 2, height: 1 },
       })
       setCallback('watermark_scale_medium', 100)
 

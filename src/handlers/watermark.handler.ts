@@ -860,6 +860,10 @@ export class WatermarkHandler extends BaseHandler {
     )
     const targetHeight = Math.max(1, Math.round((markHeight * targetWidth) / markWidth))
 
+    if (targetHeight > Math.floor(baseHeight * MAX_HEIGHT_RATIO)) {
+      throw new InvalidWatermarkError()
+    }
+
     const margin = Math.max(
       0,
       Math.min(

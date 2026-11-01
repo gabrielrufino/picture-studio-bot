@@ -270,6 +270,7 @@ targetHeight = max(1, round(markHeight * targetWidth / markWidth))
    - `targetWidth` never exceeds the mark's original width (no upscaling).
    - Height is capped at 30% of the base height (`MAX_HEIGHT_RATIO`).
    - If no aspect-preserving size fits the cap (`maxByHeight < 1`), the mark is rejected with `InvalidWatermarkError` instead of being distorted.
+   - `targetHeight` is also checked against `floor(baseHeight * MAX_HEIGHT_RATIO)`; if the one-pixel minimum would exceed the cap (e.g., a base shorter than 4 pixels), the mark is rejected with `InvalidWatermarkError`.
 4. Margin:
 
 ```text
@@ -333,7 +334,8 @@ Logs via Pino (`this.logger`), with `fileId`/`path` context:
 - sending 1 photo as a document, 2–10 as an album, 11 in two sends;
 - format preservation, AVIF, per-photo sizing, and positioning;
 - partial failures, refunds, mark vs. photo errors, progress, and temporary file cleanup;
-- deduplication/truncation of photos above the plan before processing.
+- deduplication/truncation of photos above the plan before processing;
+- rejection when the computed watermark height would exceed the 30% cap on very small bases.
 
 Mandatory pattern: `describe(WatermarkHandler.name)` and `describe(WatermarkHandler.prototype.<method>.name)` for methods; strings only for groupings that are not methods (`msg:photo`, `callback_query`, `processing`).
 

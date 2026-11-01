@@ -134,6 +134,24 @@ describe(ProHandler.name, () => {
       expect(ctx.session.command).toBeNull()
     })
 
+    it('should notify expired when the refreshed record still has an expired Pro plan', async () => {
+      const expiredDate = new Date()
+      expiredDate.setDate(expiredDate.getDate() - 31)
+      const expiredUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: expiredDate })
+      vi.spyOn(userRepository, 'findByTelegramId')
+        .mockResolvedValueOnce(expiredUser)
+        .mockResolvedValueOnce(expiredUser)
+      vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce(null)
+
+      const ctx = createMockContext()
+
+      await handler.onCommand(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('pro_expired')
+      expect(ctx.reply).not.toHaveBeenCalledWith(expect.stringContaining('Active since'), expect.anything())
+      expect(ctx.session.command).toBeNull()
+    })
+
     it('should set session command and send invoice with pro_price from config', async () => {
       const existingUser = createMockUser()
       vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)

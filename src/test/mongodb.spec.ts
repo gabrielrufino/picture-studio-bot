@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { connectToTestDatabase } from '@/test/mongodb'
 
 describe(connectToTestDatabase.name, () => {
@@ -21,5 +21,17 @@ describe(connectToTestDatabase.name, () => {
     expect(clientA.database.databaseName.startsWith('pdf_studio_test_isolation_a_')).toBe(true)
     expect(clientB.database.databaseName.startsWith('pdf_studio_test_isolation_b_')).toBe(true)
     expect(clientA.database.databaseName).not.toBe(clientB.database.databaseName)
+  })
+
+  it('should use a new run identifier in a fresh module instance', async () => {
+    vi.resetModules()
+    const { connectToTestDatabase: connectFresh } = await import('@/test/mongodb')
+    const fresh = await connectFresh('isolation_a')
+    try {
+      expect(fresh.database.databaseName).not.toBe(clientA.database.databaseName)
+    }
+    finally {
+      await fresh.client.close()
+    }
   })
 })

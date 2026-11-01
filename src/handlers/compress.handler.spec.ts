@@ -157,6 +157,25 @@ describe(CompressHandler.name, () => {
         expect(userRepository.decrementUsage).toHaveBeenCalledWith(123)
       })
 
+      it('should reply with invalid file message when JPEG conversion fails to decode', async () => {
+        vi.mocked(sharp).mockReturnValue({
+          metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
+          jpeg: vi.fn().mockReturnThis(),
+          toBuffer: vi.fn().mockRejectedValueOnce(new Error('VipsJpeg: Invalid JPEG data')),
+        } as any)
+
+        const downloadMock = vi.fn().mockResolvedValue('/tmp/input.jpg')
+        ctx.getFile = vi.fn().mockResolvedValue({ download: downloadMock })
+
+        await handler.events['msg:photo']!(ctx)
+
+        expect(ctx.reply).toHaveBeenCalledWith('compress_invalid_file')
+        expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+        expect(logger.error).not.toHaveBeenCalled()
+        expect(userRepository.incrementUsage).toHaveBeenCalledWith(123, 3)
+        expect(userRepository.decrementUsage).toHaveBeenCalledWith(123)
+      })
+
       it('should throw error when file download fails', async () => {
         ctx.getFile = vi.fn().mockResolvedValue({ download: vi.fn().mockResolvedValue(undefined) })
 

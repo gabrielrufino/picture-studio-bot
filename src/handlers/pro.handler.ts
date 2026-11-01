@@ -72,7 +72,7 @@ export class ProHandler extends BaseHandler {
         )
         if (!updated) {
           const refreshed = await this.userRepository.findByTelegramId(userId)
-          if (refreshed?.plan_type !== PlanTypeEnum.Pro) {
+          if (refreshed?.plan_type !== PlanTypeEnum.Pro || isPlanExpired(refreshed.plan_started_at)) {
             await ctx.reply(ctx.t('pro_expired'))
             await this.resetSession(ctx)
             return
