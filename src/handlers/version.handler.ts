@@ -11,6 +11,7 @@ export class VersionHandler extends BaseHandler {
   public readonly events = {}
 
   async onCommand(ctx: CustomContext) {
+    await this.resetSession(ctx)
     await ctx.reply(formatString(ctx.t('version_info'), { version }), { parse_mode: 'HTML' })
   }
 }

@@ -6,6 +6,7 @@ import { PaymentEntity } from '@/entities/payment.entity'
 import { CommandEnum } from '@/enums/command.enum'
 import { CurrencyEnum } from '@/enums/currency.enum'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { isPlanExpired } from '@/utils/plan.util'
 import { BaseHandler } from './base.handler'
 
 export class ProHandler extends BaseHandler {
@@ -60,8 +61,35 @@ export class ProHandler extends BaseHandler {
     const user = await this.userRepository.findByTelegramId(userId)
 
     if (user?.plan_type === PlanTypeEnum.Pro) {
+      const planStartedAt = user.plan_started_at
       const locale = ctx.session?.language || user.language || 'en'
-      const date = user.plan_started_at ? new Date(user.plan_started_at).toLocaleDateString(locale) : '-'
+
+      if (isPlanExpired(planStartedAt)) {
+        const updated = await this.userRepository.updateById(
+          user._id,
+          { plan_type: PlanTypeEnum.Free, plan_started_at: null },
+          { filter: { plan_started_at: planStartedAt } },
+        )
+        if (!updated) {
+          const refreshed = await this.userRepository.findByTelegramId(userId)
+          if (refreshed?.plan_type !== PlanTypeEnum.Pro || isPlanExpired(refreshed.plan_started_at)) {
+            await ctx.reply(ctx.t('pro_expired'))
+            await this.resetSession(ctx)
+            return
+          }
+
+          const currentStartedAt = refreshed.plan_started_at ?? planStartedAt
+          await ctx.reply(ctx.t('subscription_info').replace('{date}', currentStartedAt ? new Date(currentStartedAt).toLocaleDateString(locale) : '-'), { parse_mode: 'HTML' })
+          await this.resetSession(ctx)
+          return
+        }
+
+        await ctx.reply(ctx.t('pro_expired'))
+        await this.resetSession(ctx)
+        return
+      }
+
+      const date = planStartedAt ? new Date(planStartedAt).toLocaleDateString(locale) : '-'
       await ctx.reply(ctx.t('subscription_info').replace('{date}', date), { parse_mode: 'HTML' })
       await this.resetSession(ctx)
       return

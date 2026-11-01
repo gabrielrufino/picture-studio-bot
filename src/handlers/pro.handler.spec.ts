@@ -61,7 +61,8 @@ describe(ProHandler.name, () => {
 
   describe(ProHandler.prototype.onCommand.name, () => {
     it('should show subscription info if user is already PRO', async () => {
-      const startDate = new Date('2026-01-01')
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 10)
       const existingUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: startDate })
       vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)
 
@@ -86,6 +87,68 @@ describe(ProHandler.name, () => {
       await handler.onCommand(ctx)
 
       expect(ctx.reply).toHaveBeenCalledWith('Active since -', { parse_mode: 'HTML' })
+      expect(ctx.session.command).toBeNull()
+    })
+
+    it('should downgrade to Free and notify when the Pro plan has expired', async () => {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 31)
+      const existingUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: startDate })
+      vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)
+      vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce({} as any)
+
+      const ctx = createMockContext({
+        session: { command: CommandEnum.Pro, params: { file_id: 'photo-id' } },
+      })
+
+      await handler.onCommand(ctx)
+
+      expect(userRepository.updateById).toHaveBeenCalledWith('user-id', {
+        plan_type: PlanTypeEnum.Free,
+        plan_started_at: null,
+      }, { filter: { plan_started_at: startDate } })
+      expect(ctx.reply).toHaveBeenCalledWith('pro_expired')
+      expect(ctx.replyWithInvoice).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBeNull()
+      expect(ctx.session.params).toBeNull()
+    })
+
+    it('should show the current plan date when the downgrade loses a renewal race', async () => {
+      const expiredDate = new Date()
+      expiredDate.setDate(expiredDate.getDate() - 31)
+      const renewedDate = new Date()
+      const expiredUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: expiredDate })
+      const renewedUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: renewedDate })
+      vi.spyOn(userRepository, 'findByTelegramId')
+        .mockResolvedValueOnce(expiredUser)
+        .mockResolvedValueOnce(renewedUser)
+      vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce(null)
+
+      const ctx = createMockContext({
+        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+      })
+
+      await handler.onCommand(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith(`Active since ${renewedDate.toLocaleDateString('en')}`, { parse_mode: 'HTML' })
+      expect(ctx.session.command).toBeNull()
+    })
+
+    it('should notify expired when the refreshed record still has an expired Pro plan', async () => {
+      const expiredDate = new Date()
+      expiredDate.setDate(expiredDate.getDate() - 31)
+      const expiredUser = createMockUser({ plan_type: PlanTypeEnum.Pro, plan_started_at: expiredDate })
+      vi.spyOn(userRepository, 'findByTelegramId')
+        .mockResolvedValueOnce(expiredUser)
+        .mockResolvedValueOnce(expiredUser)
+      vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce(null)
+
+      const ctx = createMockContext()
+
+      await handler.onCommand(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('pro_expired')
+      expect(ctx.reply).not.toHaveBeenCalledWith(expect.stringContaining('Active since'), expect.anything())
       expect(ctx.session.command).toBeNull()
     })
 

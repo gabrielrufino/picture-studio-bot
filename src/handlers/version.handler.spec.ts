@@ -9,7 +9,7 @@ describe(VersionHandler.name, () => {
 
   beforeEach(() => {
     handler = new VersionHandler()
-    ctx = { t: (key: string) => key, reply: vi.fn() } as unknown as CustomContext
+    ctx = { t: (key: string) => key, session: { command: CommandEnum.Crop, params: { file_id: 'photo-id' } }, reply: vi.fn() } as unknown as CustomContext
   })
 
   it('should have correct command', () => {
@@ -21,6 +21,8 @@ describe(VersionHandler.name, () => {
       await handler.onCommand(ctx)
 
       expect(ctx.reply).toHaveBeenCalledWith('version_info', { parse_mode: 'HTML' })
+      expect(ctx.session.command).toBeNull()
+      expect(ctx.session.params).toBeNull()
     })
   })
 })

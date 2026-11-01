@@ -26,6 +26,7 @@ vi.mock('node:os', () => ({
 
 vi.mock('sharp', () => ({
   default: vi.fn().mockReturnValue({
+    metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
     jpeg: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('compressed image data')),
   }),
@@ -108,6 +109,7 @@ describe(CompressHandler.name, () => {
       it('should reply with no_reduction message when compressed file is not smaller', async () => {
         vi.mocked(fs.stat).mockResolvedValue({ size: 50 } as any)
         vi.mocked(sharp).mockReturnValue({
+          metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
           jpeg: vi.fn().mockReturnThis(),
           toBuffer: vi.fn().mockResolvedValue(Buffer.from('this buffer is larger than 50 bytes so no reduction happens')),
         } as any)
@@ -140,11 +142,38 @@ describe(CompressHandler.name, () => {
         expect(ctx.reply).not.toHaveBeenCalledWith('compress_error')
       })
 
-      it('should return silently on InvalidFileError', async () => {
-        vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new InvalidFileError())
+      it('should reply with invalid file message on corrupt photo', async () => {
+        vi.spyOn(handler as any, 'validateImageFile').mockRejectedValueOnce(new InvalidFileError())
+
+        const downloadMock = vi.fn().mockResolvedValue('/tmp/input.jpg')
+        ctx.getFile = vi.fn().mockResolvedValue({ download: downloadMock })
+
         await handler.events['msg:photo']!(ctx)
 
-        expect(ctx.reply).not.toHaveBeenCalledWith('compress_error')
+        expect(ctx.reply).toHaveBeenCalledWith('compress_invalid_file')
+        expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+        expect(logger.error).not.toHaveBeenCalled()
+        expect(userRepository.incrementUsage).toHaveBeenCalledWith(123, 3)
+        expect(userRepository.decrementUsage).toHaveBeenCalledWith(123)
+      })
+
+      it('should reply with invalid file message when JPEG conversion fails to decode', async () => {
+        vi.mocked(sharp).mockReturnValue({
+          metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
+          jpeg: vi.fn().mockReturnThis(),
+          toBuffer: vi.fn().mockRejectedValueOnce(new Error('VipsJpeg: Invalid JPEG data')),
+        } as any)
+
+        const downloadMock = vi.fn().mockResolvedValue('/tmp/input.jpg')
+        ctx.getFile = vi.fn().mockResolvedValue({ download: downloadMock })
+
+        await handler.events['msg:photo']!(ctx)
+
+        expect(ctx.reply).toHaveBeenCalledWith('compress_invalid_file')
+        expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+        expect(logger.error).not.toHaveBeenCalled()
+        expect(userRepository.incrementUsage).toHaveBeenCalledWith(123, 3)
+        expect(userRepository.decrementUsage).toHaveBeenCalledWith(123)
       })
 
       it('should throw error when file download fails', async () => {

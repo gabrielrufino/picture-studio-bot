@@ -1,3 +1,4 @@
+import type { Buffer } from 'node:buffer'
 import type { UserRepository } from '@/repositories/user.repository'
 import type { CompressParams } from '@/schemas'
 import type { CustomContext } from '@/types/custom-context.type'
@@ -45,13 +46,13 @@ export class CompressHandler extends BaseHandler {
             throw new Error('Failed to download file')
           }
 
+          await this.validateImageFile(inputPath)
+
           await ctx.reply(ctx.t('compress_compressing'))
 
           const quality = (ctx.session.params as CompressParams)?.quality ?? 80
 
-          const buffer = await sharp(inputPath)
-            .jpeg({ quality })
-            .toBuffer()
+          const buffer = await this.compressImage(inputPath, quality)
 
           const originalSize = (await fs.stat(inputPath)).size
 
@@ -70,7 +71,12 @@ export class CompressHandler extends BaseHandler {
         })
       }
       catch (error) {
-        if (error instanceof InvalidFileError || error instanceof LimitExceededError) {
+        if (error instanceof LimitExceededError) {
+          return
+        }
+
+        if (error instanceof InvalidFileError) {
+          await ctx.reply(ctx.t('compress_invalid_file'))
           return
         }
 
@@ -89,5 +95,32 @@ export class CompressHandler extends BaseHandler {
   public async onCommand(ctx: CustomContext): Promise<void> {
     await this.setSessionCommand(ctx)
     await ctx.reply(ctx.t('compress_send_file'))
+  }
+
+  private async compressImage(inputPath: string, quality: number): Promise<Buffer> {
+    try {
+      return await sharp(inputPath)
+        .jpeg({ quality })
+        .toBuffer()
+    }
+    catch (error) {
+      if (this.isDecodeError(error)) {
+        throw new InvalidFileError()
+      }
+      throw error
+    }
+  }
+
+  private isDecodeError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false
+    }
+    const message = error.message.toLowerCase()
+    return message.includes('unsupported image format')
+      || message.includes('unable to load')
+      || message.includes('vipsjpeg')
+      || message.includes('vippng')
+      || message.includes('vipswebp')
+      || message.includes('vipsavif')
   }
 }
