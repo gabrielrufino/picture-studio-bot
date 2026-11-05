@@ -102,6 +102,7 @@ export class InfoHandler extends BaseHandler {
         }
 
         if (!this.isImageDocument(document)) {
+          await ctx.reply(ctx.t('info_invalid_file'))
           return
         }
 

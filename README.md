@@ -50,8 +50,11 @@ A Telegram bot for processing and manipulating images.
 | Operations per day | 3 | 50 |
 | File size per photo | 10 MB | 50 MB |
 | Watermark file size | 10 MB | 50 MB |
+| Pro plan duration | — | 30 days |
 
-A watermark batch counts as a single operation. Results are always sent as documents so the original format and transparency are preserved, in albums of up to 10 files.
+The bot processes up to 150 updates per 10 seconds per user.
+
+Compress, crop, resize, and rotate results are sent as photos. Conversion and watermark results are sent as documents to preserve format and transparency. Watermark batches are sent in albums of up to 10 files.
 
 ## License
 

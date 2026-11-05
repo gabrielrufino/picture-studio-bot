@@ -191,13 +191,16 @@ describe(usageLimitMiddleware.name, () => {
       daily_usage_count: 0,
       last_usage_date: '2024-01-15',
     }
+    const renewedStartedAt = new Date()
     vi.mocked(userRepository.findByTelegramId).mockResolvedValueOnce(user as any)
     vi.mocked(userRepository.updateById).mockResolvedValueOnce(null)
+    vi.mocked(userRepository.findByTelegramId).mockResolvedValueOnce({ ...user, plan_started_at: renewedStartedAt } as any)
 
     const middleware = usageLimitMiddleware(handler)
     await middleware(ctx, next)
 
     expect(ctx.user.plan_type).toBe(PlanTypeEnum.Pro)
+    expect(ctx.user.plan_started_at).toBe(renewedStartedAt)
     expect(next).toHaveBeenCalled()
   })
 

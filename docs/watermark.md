@@ -134,7 +134,7 @@ All messages go through `ctx.t(key)` and exist in `en.json`, `es.json`, and `pt.
 - The handler is registered in `coreHandlers` and included in `handlers`, which makes the `/watermark` command automatically published in `setMyCommands` and listed in `/help`.
 - `src/index.ts` registers one listener per event filter (`msg:photo`, `msg:document`, `msg:text`, `callback_query`) and routes to the handler whose `command` equals `ctx.session.command`.
 - `/watermark` calls `onCommand`, which sets `ctx.session.command = 'watermark'` and initializes the parameters.
-- `/ready` is **not** a registered command: it is handled by the handler's `msg:text` event, with the regex `^\/ready(?:@\w+)?$/i`.
+- `/ready` is **not** a registered command: it is handled by the handler's `msg:text` event. It accepts `/ready` or `/ready@bot_name` only when `bot_name` matches `ctx.me.username`.
 
 ### 2.3 Session state machine
 
@@ -148,7 +148,8 @@ stateDiagram-v2
     positions --> scale : Apply
     scale --> processing : Choose scale
     processing --> [*] : done
-    positions --> collecting_bases : Cancel
+    positions --> [*] : Cancel
+    scale --> [*] : Cancel
     scale --> positions : Back
 ```
 
@@ -156,8 +157,8 @@ States:
 
 | `step` | Meaning | Accepted events |
 |---|---|---|
-| `collecting_bases` | Collecting base photos | `msg:photo`, `msg:document`, `msg:text` (`/ready`), `callback_query` (`watermark_ready`, `watermark_cancel`) |
-| `awaiting_watermark` | Waiting for the watermark file | `msg:document`, `callback_query` (`watermark_cancel`) |
+| `collecting_bases` | Collecting base photos | `msg:photo`, `msg:document`, `msg:text` (`/ready`), `callback_query` (`watermark_ready`) |
+| `awaiting_watermark` | Waiting for the watermark file | `msg:document` |
 | `positions` | Choosing corners | `callback_query` (toggle, `watermark_apply`, `watermark_cancel`) |
 | `scale` | Choosing size | `callback_query` (scale, `watermark_back`, `watermark_cancel`) |
 
@@ -334,7 +335,7 @@ Logs via Pino (`this.logger`), with `fileId`/`path` context:
 - sending 1 photo as a document, 2–10 as an album, 11 in two sends;
 - format preservation, AVIF, per-photo sizing, and positioning;
 - partial failures, refunds, mark vs. photo errors, progress, and temporary file cleanup;
-- deduplication/truncation of photos above the plan before processing;
+- truncation of photos above the plan before processing;
 - rejection when the computed watermark height would exceed the 30% cap on very small bases.
 
 Mandatory pattern: `describe(WatermarkHandler.name)` and `describe(WatermarkHandler.prototype.<method>.name)` for methods; strings only for groupings that are not methods (`msg:photo`, `callback_query`, `processing`).

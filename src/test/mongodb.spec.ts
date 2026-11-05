@@ -34,4 +34,14 @@ describe(connectToTestDatabase.name, () => {
       await fresh.client.close()
     }
   })
+
+  it('should share the run identifier for connections within the same module instance', async () => {
+    const sameName = await connectToTestDatabase('isolation_a')
+    try {
+      expect(sameName.database.databaseName).toBe(clientA.database.databaseName)
+    }
+    finally {
+      await sameName.client.close()
+    }
+  })
 })

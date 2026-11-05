@@ -1188,9 +1188,7 @@ describe(WatermarkHandler.name, () => {
 
     it('should enforce the limit against the downloaded photo size', async () => {
       prepareProcessing([{ id: 'base-1' }])
-      vi.mocked(fs.stat).mockImplementation(async (path: any) => ({
-        size: String(path).includes('base-1') ? 20 * 1024 * 1024 : 100,
-      }) as any)
+      vi.mocked(fs.stat).mockResolvedValueOnce({ size: 20 * 1024 * 1024 } as any)
       setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)

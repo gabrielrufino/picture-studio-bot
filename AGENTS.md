@@ -19,7 +19,7 @@ Baseline: lint, typecheck, and the full test suite pass.
 ## Environment
 
 - Copy `.env.example` to `.env`: `BOT_TOKEN`, `MONGODB_CONNECTION_STRING`, `NODE_ENV`.
-- `src/config/database.ts` throws at import time if `MONGODB_CONNECTION_STRING` is missing; `src/config/bot.ts` needs `BOT_TOKEN` at import time. Importing `src/index.ts`, `config/bot`, or `repositories` therefore requires both.
+- `src/config/database.ts` throws at import time if `MONGODB_CONNECTION_STRING` is missing; `src/config/bot.ts` needs `BOT_TOKEN` at import time. Importing `src/index.ts` or `config/bot` therefore requires both; importing `repositories` requires only `MONGODB_CONNECTION_STRING`.
 - Vitest does not load `.env`. Tests that touch those modules must mock `@/repositories` / config modules or set env vars themselves. Unit tests need no external Mongo; repository tests use `mongodb-memory-server`.
 - `NODE_ENV=production` switches Pino from pretty output to JSON.
 - Local Mongo: `mongodb://localhost:27017/picture_studio`; Docker Compose overrides it to host `mongo`. Full stack: `docker compose up --build`.
@@ -34,12 +34,12 @@ Baseline: lint, typecheck, and the full test suite pass.
 - Repositories are singletons in `src/repositories/index.ts`. Register new repositories in the `repositories` array: `init()` creates collections, JSON schema validators, and indexes at startup. Repository methods use `@EnsureInitialized` for lazy init; entities extend `BaseEntity` (`created_at`/`updated_at`).
 - User-facing text goes through `ctx.t(key)`. Keep `src/locales/en.json`, `es.json`, and `pt.json` in sync; a missing key renders as the raw key.
 - Path alias `@/*` maps to `src/*` in both TypeScript and Vitest.
-- Image processing uses sharp with UUID-named files in `os.tmpdir()`; clean them up. Compress/crop/resize/rotate reply with `replyWithPhoto`; convert and watermark send documents (media groups of max 10). The README claim that all results are documents is stale.
+- Image processing uses sharp with UUID-named files in `os.tmpdir()`; clean them up. Compress/crop/resize/rotate reply with `replyWithPhoto`; convert and watermark send documents (media groups of max 10).
 
 ## Testing conventions
 
-- `describe` blocks use `ClassName.name` and `ClassName.prototype.method.name` (for example `UserRepository.prototype.incrementUsage.name`), not string literals.
-- Repository specs share a single `mongodb-memory-server` started by the Vitest global setup (`src/test/mongodb.global-setup.ts`, which exports `MONGODB_CONNECTION_STRING`). Use `connectToTestDatabase(name)` from `src/test/mongodb.ts` to get the client and a per-file database (`pdf_studio_test_<name>`), and close the client in `afterAll`.
+- `describe` blocks use `ClassName.name` and `ClassName.prototype.method.name` (for example `UserRepository.prototype.incrementUsage.name`) for class and method groups. Non-method groups (such as `events`, `msg:photo`, `callback_query`, or `watermark file`) may use descriptive string names.
+- Repository specs share a single `mongodb-memory-server` started by the Vitest global setup (`src/test/mongodb.global-setup.ts`, which exports `MONGODB_CONNECTION_STRING`). Use `connectToTestDatabase(name)` from `src/test/mongodb.ts` to get the client and a per-file database (`pdf_studio_test_<name>_<runId>`), and close the client in `afterAll`.
 - Handler specs mock `sharp`, `node:fs/promises`, `node:os`, and grammy's `InputFile`; follow that pattern for new handlers. Never import `src/index.ts` in tests.
 
 ## Documentation

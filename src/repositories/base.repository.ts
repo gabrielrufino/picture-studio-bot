@@ -66,7 +66,7 @@ export abstract class BaseRepository<T extends Document & { updated_at: Date }> 
     entity.updated_at = new Date()
 
     const baseFilter = { _id: id } as any
-    const filter = options?.filter ? { ...baseFilter, ...options.filter } : baseFilter
+    const filter = options?.filter ? { ...options.filter, ...baseFilter } : baseFilter
 
     const result = await this.collection.findOneAndUpdate(
       filter,

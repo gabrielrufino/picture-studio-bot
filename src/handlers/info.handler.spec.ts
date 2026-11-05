@@ -249,7 +249,7 @@ describe(InfoHandler.name, () => {
 
         await handler.events['msg:document']!(docCtx)
 
-        expect(docCtx.reply).not.toHaveBeenCalled()
+        expect(docCtx.reply).toHaveBeenCalledWith('info_invalid_file')
       })
     })
   })

@@ -6,8 +6,11 @@ import { BaseRepository } from './base.repository'
 describe(BaseRepository.name, () => {
   let client: MongoClient
 
+  let baseDb: Db
+
   function databaseFor(suffix: number): Db {
-    return client.db(`pdf_studio_test_base_${suffix}`)
+    const runId = baseDb.databaseName.split('_').pop()!
+    return client.db(`pdf_studio_test_base_${suffix}_${runId}`)
   }
 
   class TestRepository extends BaseRepository<{ name: string, updated_at: Date }> {
@@ -32,7 +35,7 @@ describe(BaseRepository.name, () => {
   }
 
   beforeAll(async () => {
-    ({ client } = await connectToTestDatabase('base'))
+    ({ client, database: baseDb } = await connectToTestDatabase('base'))
   })
 
   afterAll(async () => {

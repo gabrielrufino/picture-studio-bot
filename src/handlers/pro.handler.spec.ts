@@ -143,7 +143,9 @@ describe(ProHandler.name, () => {
         .mockResolvedValueOnce(expiredUser)
       vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce(null)
 
-      const ctx = createMockContext()
+      const ctx = createMockContext({
+        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+      })
 
       await handler.onCommand(ctx)
 
