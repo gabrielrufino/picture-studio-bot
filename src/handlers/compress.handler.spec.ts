@@ -171,7 +171,7 @@ describe(CompressHandler.name, () => {
 
         expect(ctx.reply).toHaveBeenCalledWith('compress_invalid_file')
         expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
-        expect(logger.error).not.toHaveBeenCalled()
+        expect(logger.error).toHaveBeenCalled()
         expect(userRepository.incrementUsage).toHaveBeenCalledWith(123, 3)
         expect(userRepository.decrementUsage).toHaveBeenCalledWith(123)
       })

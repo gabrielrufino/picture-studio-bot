@@ -368,9 +368,11 @@ export class WatermarkHandler extends BaseHandler {
       if (!params.limit_warned) {
         params.limit_warned = true
         ctx.session.params = params
-        await ctx.reply(this.photoLimitMessage(ctx, limit), {
+        const reply = await ctx.reply(this.photoLimitMessage(ctx, limit), {
           reply_markup: this.readyKeyboard(ctx),
         })
+        params.callback_message_id = reply.message_id
+        ctx.session.params = params
       }
       return
     }
@@ -379,18 +381,22 @@ export class WatermarkHandler extends BaseHandler {
     ctx.session.params = params
 
     if (params.base_file_ids.length === 1) {
-      await ctx.reply(ctx.t('watermark_bases_hint'), {
+      const reply = await ctx.reply(ctx.t('watermark_bases_hint'), {
         reply_markup: this.readyKeyboard(ctx),
       })
+      params.callback_message_id = reply.message_id
+      ctx.session.params = params
       return
     }
 
     if (params.base_file_ids.length === limit) {
       params.limit_warned = true
       ctx.session.params = params
-      await ctx.reply(this.photoLimitMessage(ctx, limit), {
+      const reply = await ctx.reply(this.photoLimitMessage(ctx, limit), {
         reply_markup: this.readyKeyboard(ctx),
       })
+      params.callback_message_id = reply.message_id
+      ctx.session.params = params
     }
   }
 
@@ -407,6 +413,11 @@ export class WatermarkHandler extends BaseHandler {
     const params = this.getParams(ctx)
 
     if (params.step !== 'collecting_bases') {
+      await ctx.answerCallbackQuery()
+      return
+    }
+
+    if (!this.isCurrentKeyboard(ctx, params)) {
       await ctx.answerCallbackQuery()
       return
     }
@@ -611,11 +622,18 @@ export class WatermarkHandler extends BaseHandler {
       return
     }
 
+    if (sessionParams.processing) {
+      this.logger.warn({ telegram_user: ctx.from?.id }, 'Ignoring duplicate scale callback; batch is already processing or was interrupted.')
+      await ctx.answerCallbackQuery()
+      return
+    }
+
     const validated = this.validateParams(WatermarkProcessParamsSchema, sessionParams)
     const params = {
       ...validated,
       base_file_ids: validated.base_file_ids.slice(0, this.getPhotoLimit(ctx)),
       scale,
+      processing: true,
     }
 
     ctx.session.params = { ...params, step: 'scale' }

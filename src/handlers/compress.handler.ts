@@ -105,6 +105,7 @@ export class CompressHandler extends BaseHandler {
     }
     catch (error) {
       if (this.isDecodeError(error)) {
+        this.logger.error(error)
         throw new InvalidFileError()
       }
       throw error

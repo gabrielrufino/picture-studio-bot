@@ -290,6 +290,7 @@ describe(WatermarkHandler.name, () => {
 
       expect(params().base_file_ids).toEqual(['photo-1'])
       expect(params().step).toBe('collecting_bases')
+      expect(params().callback_message_id).toBe(100)
       expect(ctx.reply).toHaveBeenCalledWith('watermark_bases_hint', {
         reply_markup: expect.any(InlineKeyboard),
       })
@@ -615,7 +616,8 @@ describe(WatermarkHandler.name, () => {
 
   describe('callback_query', () => {
     it('should alert when ready is pressed without photos', async () => {
-      setCallback('watermark_ready')
+      setParams({ base_file_ids: [], callback_message_id: 100 })
+      setCallback('watermark_ready', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -627,8 +629,8 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should move to the watermark step when ready is pressed with photos', async () => {
-      setParams({ base_file_ids: ['photo-1'] })
-      setCallback('watermark_ready')
+      setParams({ base_file_ids: ['photo-1'], callback_message_id: 100 })
+      setCallback('watermark_ready', 100)
 
       await handler.events.callback_query!(ctx)
 
@@ -644,6 +646,16 @@ describe(WatermarkHandler.name, () => {
       await handler.events.callback_query!(ctx)
 
       expect(ctx.answerCallbackQuery).toHaveBeenCalled()
+      expect(ctx.editMessageText).not.toHaveBeenCalled()
+    })
+
+    it('should ignore a ready callback from a stale keyboard', async () => {
+      setParams({ base_file_ids: ['photo-1'], callback_message_id: 100 })
+      setCallback('watermark_ready', 999)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(params().step).toBe('collecting_bases')
       expect(ctx.editMessageText).not.toHaveBeenCalled()
     })
 
@@ -1184,6 +1196,18 @@ describe(WatermarkHandler.name, () => {
       await handler.events.callback_query!(ctx)
 
       expect(sentMedia()).toHaveLength(3)
+    })
+
+    it('should ignore a scale callback when the batch is already processing', async () => {
+      prepareProcessing([{ id: 'base-1' }])
+      ctx.session.params = { ...params(), processing: true }
+      setCallback('watermark_scale_medium', 100)
+
+      await handler.events.callback_query!(ctx)
+
+      expect(ctx.replyWithDocument).not.toHaveBeenCalled()
+      expect(ctx.replyWithMediaGroup).not.toHaveBeenCalled()
+      expect(userRepository.incrementUsage).not.toHaveBeenCalled()
     })
 
     it('should enforce the limit against the downloaded photo size', async () => {

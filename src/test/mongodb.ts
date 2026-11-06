@@ -12,7 +12,7 @@ let __runId: string | undefined
 
 export async function connectToTestDatabase(name: string): Promise<TestDatabase> {
   if (!__runId) {
-    __runId = crypto.randomUUID().slice(0, 8)
+    __runId = crypto.randomUUID().replace(/-/g, '')
   }
 
   const uri = process.env.MONGODB_CONNECTION_STRING
@@ -25,7 +25,13 @@ export async function connectToTestDatabase(name: string): Promise<TestDatabase>
   await client.connect()
 
   const databaseName = `pdf_studio_test_${name}_${__runId}`
-  await client.db(databaseName).dropDatabase()
+  try {
+    await client.db(databaseName).dropDatabase()
+  }
+  catch (error) {
+    await client.close()
+    throw error
+  }
 
   return { client, database: client.db(databaseName) }
 }

@@ -176,7 +176,8 @@ Callbacks are ignored when the `step` does not match or when the pressed message
 | `positions` | `WatermarkCorner[]` | `[]` | `top-left`, `top-right`, `bottom-left`, `bottom-right` |
 | `scale` | `auto \| small \| medium \| large` | `auto` | Chosen scale |
 | `limit_warned` | `boolean?` | — | Ensures a single limit warning per batch |
-| `callback_message_id` | `number?` | — | Message ID of the keyboard shown for the active batch; ignored callbacks come from other messages |
+| `callback_message_id` | `number?` | — | Message ID of the keyboard shown for the active batch (set when the Ready keyboard is displayed during `collecting_bases` and again from the positions keyboard); ignored callbacks come from other messages |
+| `processing` | `boolean?` | — | Set to `true` before `processBatch` starts; prevents replay if the process restarts and the Telegram callback is redelivered |
 | `paths` | `string[]?` | — | Reserved for temporary file cleanup by `BaseHandler` |
 
 Derived schemas:
@@ -197,14 +198,14 @@ Session validation uses `WatermarkParamsSchema.safeParse`; failures throw `Sessi
 
 | Callback data | Action |
 |---|---|
-| `watermark_ready` | Ends collection (with an alert if there are no photos) |
+| `watermark_ready` | Ends collection (with an alert if there are no photos); only when the callback comes from the tracked keyboard |
 | `watermark_cancel` | Resets the session and edits the message to "cancelled" (only when the callback comes from the tracked keyboard) |
 | `watermark_toggle_tl` / `_tr` / `_bl` / `_br` | Toggles the matching corner and updates the keyboard |
 | `watermark_apply` | Validates at least one corner and moves to `scale` |
 | `watermark_back` | Goes back from `scale` to `positions` |
 | `watermark_scale_auto` / `_small` / `_medium` / `_large` | Starts processing with the chosen scale |
 
-Every callback that acts on the batch is ignored unless the pressed message matches `params.callback_message_id`; the tracked ID is set from the positions keyboard message when the mark is accepted.
+Every callback that acts on the batch is ignored unless the pressed message matches `params.callback_message_id`; the tracked ID is set when the Ready keyboard is shown (during `collecting_bases`) and again from the positions keyboard message when the mark is accepted.
 
 ### 2.6 Collection and limits
 
@@ -231,7 +232,7 @@ Image errors become `InvalidWatermarkError` → `watermark_invalid_file` message
 
 ### 2.8 Processing
 
-`process` validates `WatermarkProcessParamsSchema`, truncates the bases to the limit, fixes the scale, and starts `processBatch`.
+`process` validates `WatermarkProcessParamsSchema`, truncates the bases to the limit, fixes the scale, sets `processing: true` on the params (to prevent replay after a process restart), and starts `processBatch`.
 
 `processBatch`:
 
@@ -364,3 +365,5 @@ Change checklist: `pnpm lint`, `pnpm build:check`, `pnpm test` (or the handler s
 - **Telegram download limit:** `MAX_PRO_FILE_SIZE` (50 MB) is an application limit; downloading via the Bot API may have a lower ceiling (20 MB on the cloud API). Files above the ceiling fail during download and fall into generic handling — validate when changing limits.
 - **MongoDB session:** a flow started and abandoned remains until the user restarts or cancels; there is no explicit TTL in the watermark flow.
 - **Usage counted only on delivery:** the refund depends on `markDelivered`, called on the first successful chunk.
+- **Batch replay protection:** the `processing` flag on the session params prevents a redelivered scale callback from restarting the batch after a process restart. If the process terminates after delivery but before the session is cleared, the flag ensures the batch is not re-executed; the session is eventually cleared by the user starting a new command or by the generic session-validation path.
+- **No durable reservation recovery:** if the process terminates between reserving the operation and delivering any photo, the daily usage count remains charged without output. Reconciliation of lost reservations is not implemented.
