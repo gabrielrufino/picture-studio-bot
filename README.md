@@ -9,6 +9,7 @@ A Telegram bot for processing and manipulating images.
 - ✂️ **Crop** - Crop images to custom dimensions
 - 📐 **Resize** - Resize images to preset dimensions
 - 🔄 **Rotate** - Rotate images by 90°, 180°, or -90°
+- 💧 **Watermark** - Apply a watermark to batches of photos, choosing corners and size
 
 ## Getting started
 
@@ -33,11 +34,27 @@ A Telegram bot for processing and manipulating images.
 - `/compress` - Compress an image
 - `/convert` - Convert an image format
 - `/crop` - Crop an image
+- `/info` - Get image info
 - `/resize` - Resize an image
 - `/rotate` - Rotate an image
+- `/watermark` - Apply a watermark to up to 3 photos (Free) or 100 photos (Pro) per operation
 - `/pro` - Upgrade to Pro
 - `/language` - Change language
 - `/feedback` - Send feedback
+
+## Limits
+
+| Rule | Free | Pro |
+|---|---:|---:|
+| Photos per operation | 3 | 100 |
+| Operations per day | 3 | 50 |
+| File size per photo | 10 MB | 50 MB |
+| Watermark file size | 10 MB | 50 MB |
+| Pro plan duration | — | 30 days |
+
+The bot processes up to 150 updates per 10 seconds per user.
+
+Compress, crop, resize, and rotate results are sent as photos. Conversion and watermark results are sent as documents to preserve format and transparency. Watermark batches are sent in albums of up to 10 files.
 
 ## License
 

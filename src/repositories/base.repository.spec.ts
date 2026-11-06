@@ -1,11 +1,17 @@
-import { MongoClient } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { Db, MongoClient } from 'mongodb'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { connectToTestDatabase } from '@/test/mongodb'
 import { BaseRepository } from './base.repository'
 
 describe(BaseRepository.name, () => {
-  let mongod: MongoMemoryServer
   let client: MongoClient
+
+  let baseDb: Db
+
+  function databaseFor(suffix: number): Db {
+    const runId = baseDb.databaseName.split('_').pop()!
+    return client.db(`pdf_studio_test_base_${suffix}_${runId}`)
+  }
 
   class TestRepository extends BaseRepository<{ name: string, updated_at: Date }> {
     constructor(database: any) {
@@ -29,18 +35,15 @@ describe(BaseRepository.name, () => {
   }
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create()
-    client = new MongoClient(mongod.getUri())
-    await client.connect()
+    ({ client, database: baseDb } = await connectToTestDatabase('base'))
   })
 
   afterAll(async () => {
     await client.close()
-    await mongod.stop()
   })
 
   it('should initialize correctly when collection does not exist', async () => {
-    const db = client.db('test_db_1')
+    const db = databaseFor(1)
     const repo = new TestRepository(db)
 
     await repo.init()
@@ -51,7 +54,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should initialize correctly when collection already exists', async () => {
-    const db = client.db('test_db_2')
+    const db = databaseFor(2)
     await db.createCollection('test')
     const repo = new TestRepository(db)
 
@@ -63,7 +66,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should call init automatically when calling a decorated method', async () => {
-    const db = client.db('test_db_3')
+    const db = databaseFor(3)
     const repo = new TestRepository(db)
     const initSpy = vi.spyOn(repo, 'init')
 
@@ -74,7 +77,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should not call init again if already initialized', async () => {
-    const db = client.db('test_db_4')
+    const db = databaseFor(4)
     const repo = new TestRepository(db)
     await repo.init()
     const initSpy = vi.spyOn(repo, 'init')
@@ -85,7 +88,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should update an entity by id', async () => {
-    const db = client.db('test_db_5')
+    const db = databaseFor(5)
     const repo = new TestRepository(db)
     const entity = { name: 'initial', updated_at: new Date(0) }
     const created = await repo.create(entity)
@@ -101,7 +104,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should insert multiple entities', async () => {
-    const db = client.db('test_db_6')
+    const db = databaseFor(6)
     const repo = new TestRepository(db)
     const entities = [
       { name: 'entity1', updated_at: new Date() },
@@ -116,7 +119,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should return empty array if no entities are passed to insertMany', async () => {
-    const db = client.db('test_db_7')
+    const db = databaseFor(7)
     const repo = new TestRepository(db)
 
     const created = await repo.insertMany([])
@@ -125,7 +128,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should call createIndexes with all indexes on init', async () => {
-    const db = client.db('test_db_8')
+    const db = databaseFor(8)
     const repo = new TestRepository(db)
     const createIndexesSpy = vi.spyOn((repo as any).collection, 'createIndexes')
 
@@ -136,7 +139,7 @@ describe(BaseRepository.name, () => {
   })
 
   it('should not call createIndexes when no indexes are defined', async () => {
-    const db = client.db('test_db_9')
+    const db = databaseFor(9)
     const repo = new TestRepositoryNoIndexes(db)
     const createIndexesSpy = vi.spyOn((repo as any).collection, 'createIndexes')
 

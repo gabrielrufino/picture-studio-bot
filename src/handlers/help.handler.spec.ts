@@ -18,7 +18,7 @@ describe(HelpHandler.name, () => {
 
   beforeEach(() => {
     handler = new HelpHandler(mockHandlers)
-    ctx = { t: (key: string) => key, reply: vi.fn(), answerCallbackQuery: vi.fn(), deleteMessage: vi.fn().mockResolvedValue(undefined), callbackQuery: {
+    ctx = { t: (key: string) => key, session: { command: CommandEnum.Crop, params: { file_id: 'photo-id' } }, reply: vi.fn(), answerCallbackQuery: vi.fn(), deleteMessage: vi.fn().mockResolvedValue(undefined), callbackQuery: {
       data: 'compress',
     } } as unknown as CustomContext
   })
@@ -32,6 +32,8 @@ describe(HelpHandler.name, () => {
       await handler.onCommand(ctx)
 
       expect(ctx.reply).toHaveBeenCalledWith('help_select_operation', expect.objectContaining({ reply_markup: expect.anything() }))
+      expect(ctx.session.command).toBeNull()
+      expect(ctx.session.params).toBeNull()
     })
   })
 

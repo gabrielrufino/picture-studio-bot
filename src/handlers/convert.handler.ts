@@ -91,6 +91,8 @@ export class ConvertHandler extends BaseHandler {
             throw new Error('Failed to download file')
           }
 
+          await this.validateImageFile(inputPath)
+
           const buffer = await sharp(inputPath)
             .toFormat(format as 'jpeg' | 'png' | 'webp')
             .toBuffer()
