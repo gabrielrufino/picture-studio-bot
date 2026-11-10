@@ -10,7 +10,7 @@ import { BaseHandler } from './base.handler'
 
 describe(BaseHandler.name, () => {
   class TestHandler extends BaseHandler {
-    readonly command = CommandEnum.Test
+    readonly command = CommandEnum.Version
     readonly description = 'Test command'
     readonly events = {}
     async onCommand() {}
@@ -62,13 +62,13 @@ describe(BaseHandler.name, () => {
 
     await handler.setSessionCommand(ctx)
 
-    expect(ctx.session.command).toBe(CommandEnum.Test)
+    expect(ctx.session.command).toBe(CommandEnum.Version)
   })
 
   it('should reset session correctly', async () => {
     const handler = new TestHandler()
     const ctx: any = { t: (key: string) => key, session: {
-      command: CommandEnum.Test,
+      command: CommandEnum.Version,
       params: { someParam: 'value' },
     } } as unknown as CustomContext
 
@@ -82,7 +82,7 @@ describe(BaseHandler.name, () => {
     it('should remove temporary file if path exists in params', async () => {
       const handler = new TestHandler()
       const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Test,
+        command: CommandEnum.Version,
         params: { path: '/tmp/test-file' },
       } } as unknown as CustomContext
 
@@ -96,7 +96,7 @@ describe(BaseHandler.name, () => {
     it('should remove temporary files if paths exist in params', async () => {
       const handler = new TestHandler()
       const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Test,
+        command: CommandEnum.Version,
         params: { paths: ['/tmp/file1', '/tmp/file2'] },
       } } as unknown as CustomContext
 
@@ -111,7 +111,7 @@ describe(BaseHandler.name, () => {
     it('should ignore non-string paths in paths array', async () => {
       const handler = new TestHandler()
       const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Test,
+        command: CommandEnum.Version,
         params: { paths: ['/tmp/file1', 123, null] },
       } } as unknown as CustomContext
 
@@ -126,7 +126,7 @@ describe(BaseHandler.name, () => {
     it('should catch and log error if fs.rm fails', async () => {
       const handler = new TestHandler()
       const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Test,
+        command: CommandEnum.Version,
         params: { path: '/tmp/test-file' },
       } } as unknown as CustomContext
 

@@ -96,6 +96,8 @@ export class RotateHandler extends BaseHandler {
             throw new Error('Failed to download file')
           }
 
+          await this.validateImageFile(inputPath)
+
           const buffer = await sharp(inputPath)
             .rotate(degreesValue)
             .toBuffer()

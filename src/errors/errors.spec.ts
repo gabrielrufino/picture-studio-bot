@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { InvalidFileError } from './invalid-file.error'
+import { InvalidWatermarkError } from './invalid-watermark.error'
 import { LimitExceededError } from './limit-exceeded.error'
 import { SessionValidationError } from './session-validation.error'
 
@@ -9,6 +10,15 @@ describe('custom errors', () => {
       const error = new InvalidFileError()
       expect(error.message).toBe('Invalid image type.')
       expect(error.name).toBe('InvalidFileError')
+      expect(error).toBeInstanceOf(Error)
+    })
+  })
+
+  describe(InvalidWatermarkError.name, () => {
+    it('should have correct message and name', () => {
+      const error = new InvalidWatermarkError()
+      expect(error.message).toBe('Invalid watermark image.')
+      expect(error.name).toBe('InvalidWatermarkError')
       expect(error).toBeInstanceOf(Error)
     })
   })

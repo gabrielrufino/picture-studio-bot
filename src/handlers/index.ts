@@ -5,24 +5,28 @@ import { ConvertHandler } from './convert.handler'
 import { CropHandler } from './crop.handler'
 import { FeedbackHandler } from './feedback.handler'
 import { HelpHandler } from './help.handler'
+import { InfoHandler } from './info.handler'
 import { LanguageHandler } from './language.handler'
 import { ProHandler } from './pro.handler'
 import { ResizeHandler } from './resize.handler'
 import { RotateHandler } from './rotate.handler'
 import { StartHandler } from './start.handler'
 import { VersionHandler } from './version.handler'
+import { WatermarkHandler } from './watermark.handler'
 
 const coreHandlers: Array<BaseHandler> = [
   new CompressHandler(userRepository),
   new ConvertHandler(userRepository),
   new CropHandler(userRepository),
   new FeedbackHandler(feedbackRepository),
+  new InfoHandler(userRepository),
   new LanguageHandler(userRepository),
   new ProHandler(userRepository, paymentRepository, configurationRepository),
   new ResizeHandler(userRepository),
   new RotateHandler(userRepository),
   new StartHandler(userRepository),
   new VersionHandler(),
+  new WatermarkHandler(userRepository),
 ]
 
 const helpHandler = new HelpHandler(coreHandlers)

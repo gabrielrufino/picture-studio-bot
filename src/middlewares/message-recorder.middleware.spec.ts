@@ -1,7 +1,6 @@
 import type { MessageEntity } from '@/entities/message.entity'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { logger } from '@/config/logger'
-import { CommandEnum } from '@/enums/command.enum'
 import { messageRepository } from '@/repositories'
 import { messageRecorderMiddleware } from './message-recorder.middleware'
 
@@ -32,32 +31,6 @@ describe(messageRecorderMiddleware.name, () => {
 
     expect(messageRepository.create).toHaveBeenCalledWith(expect.objectContaining({
       text: 'hello',
-      telegram_user: ctx.from,
-    }))
-    expect(next).toHaveBeenCalled()
-  })
-
-  it('should mask password text if command is PutPassword', async () => {
-    ctx.session.command = CommandEnum.PutPassword
-    ctx.message.text = 'secret123'
-
-    await messageRecorderMiddleware(ctx, next)
-
-    expect(messageRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      text: '***',
-      telegram_user: ctx.from,
-    }))
-    expect(next).toHaveBeenCalled()
-  })
-
-  it('should mask password text if command is RemovePassword', async () => {
-    ctx.session.command = CommandEnum.RemovePassword
-    ctx.message.text = 'secret123'
-
-    await messageRecorderMiddleware(ctx, next)
-
-    expect(messageRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      text: '***',
       telegram_user: ctx.from,
     }))
     expect(next).toHaveBeenCalled()

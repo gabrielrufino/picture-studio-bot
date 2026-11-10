@@ -28,6 +28,7 @@ export class HelpHandler extends BaseHandler {
   }
 
   async onCommand(ctx: CustomContext) {
+    await this.resetSession(ctx)
     const { text, reply_markup } = new HelpMessage(this.allHandlers, ctx).build()
     await ctx.reply(text, { reply_markup })
   }

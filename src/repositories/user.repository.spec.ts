@@ -1,29 +1,25 @@
-import { MongoClient, ObjectId } from 'mongodb'
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import type { Db, MongoClient } from 'mongodb'
+import { ObjectId } from 'mongodb'
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { UserEntity } from '@/entities/user.entity'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { connectToTestDatabase } from '@/test/mongodb'
 import { UserRepository } from './user.repository'
 
 describe(UserRepository.name, () => {
   let userRepository: UserRepository
-  let mongod: MongoMemoryServer
   let client: MongoClient
+  let database: Db
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create()
-
-    process.env.MONGODB_CONNECTION_STRING = mongod.getUri()
-    client = new MongoClient(mongod.getUri())
-    const database = client.db('pdf_studio_test')
+    ({ client, database } = await connectToTestDatabase('user'))
 
     userRepository = new UserRepository(database)
   })
 
   afterAll(async () => {
     await client.close()
-    await mongod!.stop()
   })
 
   it('should create a user', async () => {
@@ -74,7 +70,7 @@ describe(UserRepository.name, () => {
         telegram_user: { id: 10, is_bot: false, first_name: 'Test' },
       })) // Ensure collection is initialized
 
-      const db = client.db('pdf_studio_test')
+      const db = database
       const collection = db.collection('users')
 
       await expect(collection.insertOne({ telegram_user: { id: 1 }, is_blocked: 'string', created_at: new Date(), updated_at: new Date() })).rejects.toThrow()
@@ -89,7 +85,7 @@ describe(UserRepository.name, () => {
         telegram_user: { id: 11, is_bot: false, first_name: 'Test' },
       }))
 
-      const db = client.db('pdf_studio_test')
+      const db = database
       const indexes = await db.collection('users').indexes()
 
       expect(indexes.some(idx => idx.key['telegram_user.id'] === 1)).toBe(true)
@@ -159,7 +155,7 @@ describe(UserRepository.name, () => {
 
   describe(UserRepository.prototype.findInactiveUsers.name, () => {
     beforeEach(async () => {
-      const db = client.db('pdf_studio_test')
+      const db = database
       await db.collection('users').deleteMany({})
     })
 
