@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actalog/node-ci@v3
+        with:
+          package-manager: pnpm
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.sha }}
