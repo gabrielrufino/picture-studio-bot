@@ -31,7 +31,8 @@
     "mongodb": "7.8.0",
     "node-cron": "4.6.0",
     "pino": "10.4.0",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "undici": "^7.18.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "10.0.0",

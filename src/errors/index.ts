@@ -1,6 +1,7 @@
 export { ImageFetchError } from './image-fetch.error'
 export { ImageInvalidUrlError } from './image-invalid-url.error'
 export { ImageNotImageError } from './image-not-image.error'
+export { ImageSendError } from './image-send.error'
 export { ImageSsrfBlockError } from './image-ssrf.error'
 export { ImageTooLargeError } from './image-too-large.error'
 export { ImageTooManyRedirectsError } from './image-too-many-redirects.error'

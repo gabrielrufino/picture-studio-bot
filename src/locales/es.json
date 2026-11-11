@@ -111,5 +111,6 @@
   "download_ssrf_blocked": "🚫 Acceso bloqueado por política de seguridad.",
   "download_not_image": "⚠️ El recurso descargado no es una imagen válida. Formatos soportados: JPEG, PNG, WebP, GIF, AVIF, TIFF.",
   "download_fetch_failed": "❌ No se pudo descargar la imagen. Verifica la URL e inténtalo de nuevo.",
-  "download_size_exceeded": "⚠️ Archivo demasiado grande."
+  "download_size_exceeded": "⚠️ Archivo demasiado grande.",
+  "download_send_failed": "❌ No se pudo enviar la imagen a Telegram. Inténtalo más tarde."
 }

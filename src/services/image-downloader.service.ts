@@ -1,7 +1,10 @@
+import type { LookupFunction } from 'node:net'
+import type { Response } from 'undici'
 import { Buffer } from 'node:buffer'
 import dns from 'node:dns/promises'
 import ipaddr from 'ipaddr.js'
 import sharp from 'sharp'
+import { Agent, fetch } from 'undici'
 import { ImageFetchError, ImageInvalidUrlError, ImageNotImageError, ImageSsrfBlockError, ImageTooLargeError, ImageTooManyRedirectsError } from '@/errors'
 
 export interface ImageInfo {
@@ -65,19 +68,22 @@ const MAX_BYTES = 50 * 1024 * 1024
 const FETCH_TIMEOUT_MS = 30_000
 
 export class ImageDownloaderService {
-  public async downloadAndAnalyze(url: string, signal?: AbortSignal): Promise<ImageInfo & { buffer: Buffer }> {
+  private readonly dispatcher = new Agent({
+    connect: {
+      lookup: (hostname, options, callback) => this.lookupPublicAddress(hostname, options, callback),
+    },
+  })
+
+  public async downloadAndAnalyze(url: string): Promise<ImageInfo & { buffer: Buffer }> {
     if (!this.isValidUrl(url)) {
       throw new ImageInvalidUrlError()
     }
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
-    const mergedSignal = signal
-      ? AbortSignal.any([signal, controller.signal])
-      : controller.signal
 
     try {
-      const response = await this.fetchWithChecks(url, mergedSignal)
+      const response = await this.fetchWithChecks(url, controller.signal)
 
       if (!this.isSupportedContentType(response.headers.get('content-type'))) {
         throw new ImageNotImageError()
@@ -147,11 +153,14 @@ export class ImageDownloaderService {
     let redirects = 0
 
     while (true) {
-      await this.assertPublicHost(currentUrl)
+      this.assertPublicHost(currentUrl)
 
       const response = await fetch(currentUrl, {
         redirect: 'manual',
         signal,
+        dispatcher: this.dispatcher,
+      }).catch((error: unknown) => {
+        throw this.toFetchError(error)
       })
 
       if (!REDIRECT_STATUSES.includes(response.status)) {
@@ -181,26 +190,43 @@ export class ImageDownloaderService {
     }
   }
 
-  private async assertPublicHost(url: string): Promise<void> {
+  private assertPublicHost(url: string): void {
     const hostname = this.extractHostname(url)
     if (!hostname) {
       throw new ImageSsrfBlockError()
     }
 
-    if (ipaddr.isValid(hostname)) {
-      if (this.isIpBlocked(hostname)) {
-        throw new ImageSsrfBlockError()
-      }
-      return
-    }
-
-    const addresses = await dns.lookup(hostname, { all: true }).catch(() => {
-      throw new ImageFetchError()
-    })
-
-    if (addresses.some(({ address }) => this.isIpBlocked(address))) {
+    if (ipaddr.isValid(hostname) && this.isIpBlocked(hostname)) {
       throw new ImageSsrfBlockError()
     }
+  }
+
+  private readonly lookupPublicAddress: LookupFunction = (hostname, options, callback) => {
+    dns.lookup(hostname, { all: true, family: options.family }).then(
+      (addresses) => {
+        if (addresses.some(({ address }) => this.isIpBlocked(address))) {
+          callback(new ImageSsrfBlockError(), '', 0)
+          return
+        }
+        if (options.all) {
+          callback(null, addresses)
+          return
+        }
+        callback(null, addresses[0].address, addresses[0].family)
+      },
+      error => callback(error, '', 0),
+    )
+  }
+
+  private toFetchError(error: unknown): Error {
+    let current: unknown = error
+    while (current) {
+      if (current instanceof ImageSsrfBlockError) {
+        return current
+      }
+      current = (current as { cause?: unknown }).cause
+    }
+    return new ImageFetchError()
   }
 
   private extractHostname(url: string): string {

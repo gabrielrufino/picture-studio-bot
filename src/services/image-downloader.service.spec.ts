@@ -12,6 +12,11 @@ vi.mock('node:dns/promises', () => ({
   },
 }))
 
+vi.mock('undici', async importOriginal => ({
+  ...await importOriginal<typeof import('undici')>(),
+  fetch: (url: string, init?: RequestInit) => globalThis.fetch(url, init),
+}))
+
 // Mock sharp BEFORE importing anything that uses it
 vi.mock('sharp', () => ({
   default: vi.fn().mockImplementation((_data?: unknown) => ({
@@ -198,22 +203,32 @@ describe(ImageDownloaderService.name, () => {
       expect(fetchMock).not.toHaveBeenCalled()
     })
 
-    it('should block hostnames that resolve to private addresses', async () => {
-      vi.mocked(dns.lookup).mockResolvedValueOnce([
-        { address: '10.0.0.5', family: 4 },
-      ] as any)
-      const fetchMock = vi.fn()
-      vi.stubGlobal('fetch', fetchMock)
+    it('should map a connection blocked by the lookup to ImageSsrfBlockError', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed', {
+        cause: new ImageSsrfBlockError(),
+      })))
 
       await expect(service.downloadAndAnalyze('https://internal.example.com/img.jpg')).rejects.toThrow(ImageSsrfBlockError)
-      expect(fetchMock).not.toHaveBeenCalled()
     })
 
     it('should reject when hostname cannot be resolved', async () => {
-      vi.mocked(dns.lookup).mockRejectedValueOnce(new Error('ENOTFOUND'))
-      vi.stubGlobal('fetch', vi.fn())
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed', {
+        cause: new Error('ENOTFOUND'),
+      })))
 
       await expect(service.downloadAndAnalyze('https://missing.example.com/img.jpg')).rejects.toThrow(ImageFetchError)
+    })
+
+    it('should send requests through the connect-time lookup dispatcher', async () => {
+      const fetchMock = createMockFetch(200, { 'content-type': 'image/jpeg' }, [JPEG_MAGIC])
+      vi.stubGlobal('fetch', fetchMock)
+
+      await service.downloadAndAnalyze('https://example.com/image')
+
+      expect(fetchMock).toHaveBeenCalledWith('https://example.com/image', expect.objectContaining({
+        redirect: 'manual',
+        dispatcher: (service as any).dispatcher,
+      }))
     })
 
     it('should throw ImageNotImageError when body bytes do not match any image signature', async () => {
@@ -260,6 +275,55 @@ describe(ImageDownloaderService.name, () => {
 
     it('should block values that are not parseable IP addresses', () => {
       expect((service as any).isIpBlocked('example.com')).toBe(true)
+    })
+  })
+
+  describe('lookupPublicAddress', () => {
+    function lookup(hostname: string, options: { all?: boolean, family?: number }) {
+      return new Promise<{ err: unknown, address?: unknown, family?: number }>((resolve) => {
+        (service as any).lookupPublicAddress(hostname, options, (err: unknown, address: unknown, family?: number) => {
+          resolve({ err, address, family })
+        })
+      })
+    }
+
+    it('should return the resolved public address', async () => {
+      const result = await lookup('example.com', { all: false })
+
+      expect(result.err).toBeNull()
+      expect(result.address).toBe('93.184.216.34')
+      expect(result.family).toBe(4)
+    })
+
+    it('should return all addresses when requested', async () => {
+      const addresses = [
+        { address: '93.184.216.34', family: 4 },
+      ]
+
+      const result = await lookup('example.com', { all: true })
+
+      expect(result.err).toBeNull()
+      expect(result.address).toEqual(addresses)
+    })
+
+    it('should fail with ImageSsrfBlockError when any resolved address is private', async () => {
+      vi.mocked(dns.lookup).mockResolvedValueOnce([
+        { address: '93.184.216.34', family: 4 },
+        { address: '10.0.0.5', family: 4 },
+      ] as any)
+
+      const result = await lookup('rebind.example.com', { all: false })
+
+      expect(result.err).toBeInstanceOf(ImageSsrfBlockError)
+    })
+
+    it('should forward DNS errors', async () => {
+      const dnsError = new Error('ENOTFOUND')
+      vi.mocked(dns.lookup).mockRejectedValueOnce(dnsError)
+
+      const result = await lookup('missing.example.com', { all: false })
+
+      expect(result.err).toBe(dnsError)
     })
   })
 

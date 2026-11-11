@@ -1,12 +1,26 @@
 import type { UserRepository } from '@/repositories/user.repository'
+import type { ImageInfo } from '@/services/image-downloader.service'
 import type { CustomContext } from '@/types/custom-context.type'
 import { InputFile } from 'grammy'
 import { CommandEnum } from '@/enums/command.enum'
-import { ImageInvalidUrlError, ImageNotImageError, ImageSsrfBlockError, ImageTooLargeError, UserNotFoundError } from '@/errors'
+import { ImageInvalidUrlError, ImageNotImageError, ImageSendError, ImageSsrfBlockError, ImageTooLargeError, UserNotFoundError } from '@/errors'
 import { ImageDownloaderService } from '@/services/image-downloader.service'
 import { BaseHandler } from './base.handler'
 
 const TELEGRAM_PHOTO_MAX_BYTES = 10 * 1024 * 1024
+const TELEGRAM_PHOTO_MAX_DIMENSIONS_SUM = 10_000
+const TELEGRAM_PHOTO_MAX_ASPECT_RATIO = 20
+
+function canSendAsPhoto(info: ImageInfo): boolean {
+  if (info.sizeBytes > TELEGRAM_PHOTO_MAX_BYTES || !info.width || !info.height) {
+    return false
+  }
+
+  const longest = Math.max(info.width, info.height)
+  const shortest = Math.min(info.width, info.height)
+  return info.width + info.height <= TELEGRAM_PHOTO_MAX_DIMENSIONS_SUM
+    && longest / shortest <= TELEGRAM_PHOTO_MAX_ASPECT_RATIO
+}
 
 function imageExtension(format: string): string {
   switch (format.toLowerCase()) {
@@ -75,11 +89,17 @@ export class DownloadHandler extends BaseHandler {
             caption: this.buildCaption(ctx, info),
           }
 
-          if (info.sizeBytes > TELEGRAM_PHOTO_MAX_BYTES) {
-            await ctx.replyWithDocument(inputFile, options)
+          try {
+            if (canSendAsPhoto(info)) {
+              await ctx.replyWithPhoto(inputFile, options)
+            }
+            else {
+              await ctx.replyWithDocument(inputFile, options)
+            }
           }
-          else {
-            await ctx.replyWithPhoto(inputFile, options)
+          catch (error) {
+            this.logger.error(error)
+            throw new ImageSendError()
           }
         })
 
@@ -88,6 +108,9 @@ export class DownloadHandler extends BaseHandler {
       catch (error) {
         if (error instanceof ImageNotImageError) {
           await ctx.reply(ctx.t('download_not_image'))
+        }
+        else if (error instanceof ImageSendError) {
+          await ctx.reply(ctx.t('download_send_failed'))
         }
         else if (error instanceof ImageSsrfBlockError) {
           await ctx.reply(ctx.t('download_ssrf_blocked'))
