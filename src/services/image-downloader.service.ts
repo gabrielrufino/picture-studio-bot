@@ -165,6 +165,7 @@ export class ImageDownloaderService {
 
       if (!REDIRECT_STATUSES.includes(response.status)) {
         if (response.status !== 200) {
+          await response.body?.cancel()
           throw new ImageFetchError()
         }
 
@@ -175,6 +176,8 @@ export class ImageDownloaderService {
 
         return response
       }
+
+      await response.body?.cancel()
 
       const location = response.headers.get('location')
       if (!location) {

@@ -116,14 +116,17 @@ describe(ImageDownloaderService.name, () => {
       headers: {
         get: (key: string) => headers[key.toLowerCase()] ?? null,
       },
-      body: body && body.length > 0
-        ? (async function* () { for (const chunk of body) yield chunk })()
-        : [],
+      body: {
+        cancel: vi.fn().mockResolvedValue(undefined),
+        async* [Symbol.asyncIterator]() {
+          for (const chunk of body ?? []) yield chunk
+        },
+      },
     }
     return vi.fn().mockResolvedValue(mockResponse)
   }
 
-  describe('downloadAndAnalyze', () => {
+  describe(ImageDownloaderService.prototype.downloadAndAnalyze.name, () => {
     it.each([
       ['JPEG', JPEG_MAGIC],
       ['PNG', PNG_MAGIC],
@@ -163,7 +166,9 @@ describe(ImageDownloaderService.name, () => {
                 ? 'http://192.168.1.1/img.jpg'
                 : null,
             },
-            body: [],
+            body: {
+              cancel: vi.fn().mockResolvedValue(undefined),
+            },
           })
         }
         return (originalFetch as typeof fetch)(url)

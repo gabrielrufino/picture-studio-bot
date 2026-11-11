@@ -91,7 +91,10 @@ export class DownloadHandler extends BaseHandler {
 
           try {
             if (canSendAsPhoto(info)) {
-              await ctx.replyWithPhoto(inputFile, options)
+              await ctx.replyWithPhoto(inputFile, options).catch(async (error) => {
+                this.logger.error(error)
+                await ctx.replyWithDocument(inputFile, options)
+              })
             }
             else {
               await ctx.replyWithDocument(inputFile, options)
@@ -150,7 +153,7 @@ export class DownloadHandler extends BaseHandler {
     return url
   }
 
-  private buildCaption(ctx: CustomContext, info: { format: string, width?: number, height?: number, channels?: number, sizeBytes: number }): string {
+  private buildCaption(ctx: CustomContext, info: ImageInfo): string {
     const parts: string[] = []
 
     if (info.width && info.height) {

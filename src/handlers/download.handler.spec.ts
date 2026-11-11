@@ -243,6 +243,20 @@ describe(DownloadHandler.name, () => {
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
     })
 
+    it('should fall back to sending as a document when photo sending fails', async () => {
+      ctx.session.command = CommandEnum.Download
+      ctx.replyWithPhoto = vi.fn().mockRejectedValue(new Error('PHOTO_INVALID_DIMENSIONS')) as any
+      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.replyWithPhoto).toHaveBeenCalledOnce()
+      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
+      expect(ctx.reply).not.toHaveBeenCalledWith('download_send_failed')
+      expect(userRepository.decrementUsage).not.toHaveBeenCalled()
+    })
+
     it('should strip trailing punctuation and unbalanced parentheses from the URL', async () => {
       ctx.session.command = CommandEnum.Download
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '(see https://example.com/image.jpg).' } as any)
