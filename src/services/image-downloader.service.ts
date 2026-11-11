@@ -185,6 +185,7 @@ export class ImageDownloaderService {
 
         const contentLength = Number(response.headers.get('content-length'))
         if (contentLength > maxBytes) {
+          await response.body?.cancel()
           throw new ImageTooLargeError()
         }
 
