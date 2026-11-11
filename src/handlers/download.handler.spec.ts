@@ -3,6 +3,7 @@ import type { ImageDownloaderService } from '@/services/image-downloader.service
 import type { CustomContext } from '@/types/custom-context.type'
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
+import { GrammyError, HttpError } from 'grammy'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { CommandEnum } from '@/enums/command.enum'
@@ -329,9 +330,9 @@ describe(DownloadHandler.name, () => {
       }))
     })
 
-    it('should fall back to sending as a document when photo sending fails', async () => {
+    it('should fall back to sending as a document when Telegram rejects the photo', async () => {
       ctx.session.command = CommandEnum.Download
-      ctx.replyWithPhoto = vi.fn().mockRejectedValue(new Error('PHOTO_INVALID_DIMENSIONS')) as any
+      ctx.replyWithPhoto = vi.fn().mockRejectedValue(new GrammyError('Bad Request: PHOTO_INVALID_DIMENSIONS', { ok: false, error_code: 400, description: 'PHOTO_INVALID_DIMENSIONS' }, 'sendPhoto', {})) as any
       ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg' } as any)
 
@@ -341,6 +342,60 @@ describe(DownloadHandler.name, () => {
       expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
       expect(ctx.reply).not.toHaveBeenCalledWith('download_send_failed')
       expect(userRepository.decrementUsage).not.toHaveBeenCalled()
+    })
+
+    it('should not send a document after a network error on photo sending', async () => {
+      ctx.session.command = CommandEnum.Download
+      ctx.replyWithPhoto = vi.fn().mockRejectedValue(new HttpError('Network request for \'sendPhoto\' failed!', new Error('socket hang up'))) as any
+      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.replyWithDocument).not.toHaveBeenCalled()
+      expect(ctx.reply).toHaveBeenCalledWith('download_send_failed')
+      expect(userRepository.decrementUsage).toHaveBeenCalled()
+    })
+
+    it('should send WebP images as documents without trying a photo', async () => {
+      mockDownloadAndAnalyze.mockResolvedValueOnce({
+        format: 'WEBP',
+        width: 800,
+        height: 600,
+        channels: 3,
+        sizeBytes: 100 * 1024,
+        buffer: Buffer.from('webp-image'),
+      })
+
+      ctx.session.command = CommandEnum.Download
+      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.webp' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
+      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+    })
+
+    it('should reply with an unexpected error when the user is missing', async () => {
+      ctx.session.command = CommandEnum.Download
+      ctx.user = undefined
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('unexpected_error')
+      expect(ctx.reply).not.toHaveBeenCalledWith('download_fetch_failed')
+      expect(ctx.session.command).toBeNull()
+    })
+
+    it('should stop URLs at square and curly brackets', async () => {
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg}' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/image.jpg', MAX_FILE_SIZE)
     })
 
     it('should strip trailing punctuation and unbalanced parentheses from the URL', async () => {

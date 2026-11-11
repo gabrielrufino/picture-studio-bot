@@ -1,7 +1,7 @@
 import type { UserRepository } from '@/repositories/user.repository'
 import type { ImageInfo } from '@/services/image-downloader.service'
 import type { CustomContext } from '@/types/custom-context.type'
-import { InputFile } from 'grammy'
+import { GrammyError, InputFile } from 'grammy'
 import { MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { CommandEnum } from '@/enums/command.enum'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
@@ -12,9 +12,10 @@ import { BaseHandler } from './base.handler'
 const TELEGRAM_PHOTO_MAX_BYTES = 10 * 1024 * 1024
 const TELEGRAM_PHOTO_MAX_DIMENSIONS_SUM = 10_000
 const TELEGRAM_PHOTO_MAX_ASPECT_RATIO = 20
+const TELEGRAM_PHOTO_FORMATS = new Set(['JPEG', 'PNG'])
 
 function canSendAsPhoto(info: ImageInfo): boolean {
-  if (info.sizeBytes > TELEGRAM_PHOTO_MAX_BYTES || !info.width || !info.height) {
+  if (!TELEGRAM_PHOTO_FORMATS.has(info.format) || info.sizeBytes > TELEGRAM_PHOTO_MAX_BYTES || !info.width || !info.height) {
     return false
   }
 
@@ -109,6 +110,9 @@ export class DownloadHandler extends BaseHandler {
           try {
             if (canSendAsPhoto(info)) {
               await ctx.replyWithPhoto(inputFile, options).catch(async (error) => {
+                if (!(error instanceof GrammyError)) {
+                  throw error
+                }
                 this.logger.error(error)
                 await ctx.replyWithDocument(inputFile, options)
               })
@@ -141,6 +145,10 @@ export class DownloadHandler extends BaseHandler {
         else if (error instanceof ImageInvalidUrlError) {
           await ctx.reply(ctx.t('download_invalid_url'))
         }
+        else if (error instanceof UserNotFoundError) {
+          this.logger.error(error)
+          await ctx.reply(ctx.t('unexpected_error'))
+        }
         else {
           this.logger.error(error)
           await ctx.reply(ctx.t('download_fetch_failed'))
@@ -158,7 +166,7 @@ export class DownloadHandler extends BaseHandler {
 
   /** Extract the first http(s) URL from text, dropping trailing punctuation and unbalanced closing parentheses. */
   private extractUrl(text: string): string | null {
-    const match = text.match(/https?:\/\/[^\s<>"'\]}]+/)
+    const match = text.match(/https?:\/\/[^\s<>"'[\]{}]+/)
     if (!match) {
       return null
     }
