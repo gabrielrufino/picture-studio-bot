@@ -96,6 +96,7 @@ describe(DownloadHandler.name, () => {
       from: { id: 1 },
       reply: vi.fn().mockResolvedValue(undefined),
       replyWithDocument: vi.fn().mockResolvedValue(undefined),
+      replyWithPhoto: vi.fn().mockResolvedValue(undefined),
       api: {},
       message: null,
       callbackQuery: undefined,
@@ -310,7 +311,7 @@ describe(DownloadHandler.name, () => {
       const [inputFile] = vi.mocked(ctx.replyWithDocument).mock.calls![0]
       expect((inputFile as any).name).toBe('download-image.png')
       expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
-      expect((ctx as any).replyWithPhoto).toBeUndefined()
+      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
     })
 
     it('should send WebP images as documents', async () => {

@@ -87,11 +87,10 @@ export class DownloadHandler extends BaseHandler {
         await this.runWithUsage(ctx, this.userRepository, async () => {
           const info = await this.downloader.downloadAndAnalyze(url, maxFileSize(ctx))
           const inputFile = new InputFile(info.buffer, `download-image${imageExtension(info.format)}`)
+          const caption = this.buildCaption(ctx, info)
 
           try {
-            await ctx.replyWithDocument(inputFile, {
-              caption: this.buildCaption(ctx, info),
-            })
+            await ctx.replyWithDocument(inputFile, { caption })
           }
           catch (error) {
             this.logger.error(error)
