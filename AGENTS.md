@@ -16,6 +16,15 @@ Telegram image-processing bot: TypeScript, grammY, MongoDB, sharp. Single packag
 
 Baseline: lint, typecheck, and the full test suite pass.
 
+## Adding a Command
+
+To add a new command:
+1. Extend `BaseHandler` (`command`, `description`, `events`, `onCommand`).
+2. Add the enum value in `CommandEnum` (alphabetical order).
+3. Create the handler file under `src/handlers/<name>.handler.ts`.
+4. Register the instance in `coreHandlers` in `src/handlers/index.ts`.
+5. Update AGENTS.md documentation section and `README.md` commands list.
+
 ## Environment
 
 - Copy `.env.example` to `.env`: `BOT_TOKEN`, `MONGODB_CONNECTION_STRING`, `NODE_ENV`.
