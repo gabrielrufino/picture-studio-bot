@@ -43,7 +43,8 @@ To add a new command:
 - Repositories are singletons in `src/repositories/index.ts`. Register new repositories in the `repositories` array: `init()` creates collections, JSON schema validators, and indexes at startup. Repository methods use `@EnsureInitialized` for lazy init; entities extend `BaseEntity` (`created_at`/`updated_at`).
 - User-facing text goes through `ctx.t(key)`. Keep `src/locales/en.json`, `es.json`, and `pt.json` in sync; a missing key renders as the raw key.
 - Path alias `@/*` maps to `src/*` in both TypeScript and Vitest.
-- Image processing uses sharp with UUID-named files in `os.tmpdir()`; clean them up. Compress/crop/resize/rotate reply with `replyWithPhoto`; convert and watermark send documents (media groups of max 10).
+- Image processing uses sharp with UUID-named files in `os.tmpdir()`; clean them up. Compress/crop/resize/rotate reply with `replyWithPhoto`; convert, watermark, and download send documents (media groups of max 10).
+- `/download` fetches user URLs through `ImageDownloaderService`: hosts are checked at DNS lookup and on every redirect (SSRF guard), the body is size-capped while streaming, and the original file is always sent as a document.
 
 ## Testing conventions
 

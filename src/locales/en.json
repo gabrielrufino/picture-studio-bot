@@ -109,6 +109,7 @@
   "download_success": "Image downloaded successfully!",
   "download_invalid_url": "⚠️ Please send a valid URL (http or https).",
   "download_ssrf_blocked": "🚫 Access blocked by security policy.",
+  "download_too_large": "⚠️ The image is larger than the maximum file size for your plan.",
   "download_not_image": "⚠️ The downloaded resource is not a valid image. Supported formats: JPEG, PNG, WebP, GIF, AVIF, TIFF.",
   "download_fetch_failed": "❌ Failed to download the image. Check the URL and try again.",
   "download_send_failed": "❌ Failed to send the image to Telegram. Please try again later."

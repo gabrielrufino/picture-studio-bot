@@ -56,7 +56,9 @@ A Telegram bot for processing and manipulating images.
 
 The bot processes up to 150 updates per 10 seconds per user.
 
-Compress, crop, resize, and rotate results are sent as photos. Conversion and watermark results are sent as documents to preserve format and transparency. Watermark batches are sent in albums of up to 10 files.
+Compress, crop, resize, and rotate results are sent as photos. Conversion, watermark, and download results are sent as documents to preserve format and transparency. Watermark batches are sent in albums of up to 10 files.
+
+Downloads (`/download`) use the same per-file size limits as the other commands.
 
 ## License
 

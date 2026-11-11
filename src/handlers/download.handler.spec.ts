@@ -3,12 +3,12 @@ import type { ImageDownloaderService } from '@/services/image-downloader.service
 import type { CustomContext } from '@/types/custom-context.type'
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
-import { GrammyError, HttpError } from 'grammy'
+import { GrammyError } from 'grammy'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { CommandEnum } from '@/enums/command.enum'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
-import { ImageNotImageError, ImageTooLargeError } from '@/errors'
+import { ImageFetchError, ImageNotImageError, ImageTooLargeError } from '@/errors'
 import { DownloadHandler } from './download.handler'
 
 vi.mock('node:fs/promises', () => ({
@@ -95,7 +95,7 @@ describe(DownloadHandler.name, () => {
       user: { id: 1, plan_type: 'free' },
       from: { id: 1 },
       reply: vi.fn().mockResolvedValue(undefined),
-      replyWithPhoto: vi.fn().mockResolvedValue(undefined),
+      replyWithDocument: vi.fn().mockResolvedValue(undefined),
       api: {},
       message: null,
       callbackQuery: undefined,
@@ -146,17 +146,17 @@ describe(DownloadHandler.name, () => {
       expect(mockDownloadAndAnalyze).not.toHaveBeenCalled()
     })
 
-    it('should send photo with metadata caption on valid URL', async () => {
+    it('should send the original file as a document with metadata caption on valid URL', async () => {
       ctx.session.command = CommandEnum.Download
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'Check this out: https://example.com/image.jpg' } as any)
 
       await handler.events.message!(ctx)
 
-      expect(ctx.replyWithPhoto).toHaveBeenCalledOnce()
-      const [inputFile] = vi.mocked(ctx.replyWithPhoto).mock.calls![0]
+      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
+      const [inputFile] = vi.mocked(ctx.replyWithDocument).mock.calls![0]
       expect(inputFile).toBeInstanceOf(await import('grammy').then(m => m.InputFile))
       expect((inputFile as any).name).toContain('.jpg')
-      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(
+      expect(ctx.replyWithDocument).toHaveBeenCalledWith(
         expect.anything(),
         {
           caption: expect.stringContaining('✅ download_success'),
@@ -175,7 +175,16 @@ describe(DownloadHandler.name, () => {
       await handler.events.message!(ctx)
 
       expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/image.png', MAX_FILE_SIZE)
-      expect(ctx.replyWithPhoto).toHaveBeenCalled()
+      expect(ctx.replyWithDocument).toHaveBeenCalled()
+    })
+
+    it('should accept URLs with an uppercase scheme', async () => {
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'HTTPS://EXAMPLE.COM/image.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('HTTPS://EXAMPLE.COM/image.jpg', MAX_FILE_SIZE)
     })
 
     it('should reject invalid URLs', async () => {
@@ -215,7 +224,21 @@ describe(DownloadHandler.name, () => {
       expect(userRepository.decrementUsage).toHaveBeenCalled()
     })
 
-    it('should call decrementUsage on unexpected error during runWithUsage', async () => {
+    it('should reply with a fetch failure without logging expected fetch errors', async () => {
+      mockDownloadAndAnalyze.mockRejectedValueOnce(new ImageFetchError())
+
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/missing.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('download_fetch_failed')
+      // @ts-expect-error logger is protected
+      expect(handler.logger.error).not.toHaveBeenCalled()
+      expect(userRepository.decrementUsage).toHaveBeenCalled()
+    })
+
+    it('should log and reply with a fetch failure on unexpected errors', async () => {
       const unexpectedError = new Error('unexpected')
       mockDownloadAndAnalyze.mockRejectedValueOnce(unexpectedError)
 
@@ -225,43 +248,24 @@ describe(DownloadHandler.name, () => {
       await handler.events.message!(ctx)
 
       expect(ctx.reply).toHaveBeenCalledWith('download_fetch_failed')
+      // @ts-expect-error logger is protected
+      expect(handler.logger.error).toHaveBeenCalledWith(unexpectedError)
       expect(userRepository.decrementUsage).toHaveBeenCalled()
       expect(ctx.session.command).toBeNull()
     })
 
-    it('should send images above the Telegram photo dimension limit as documents', async () => {
-      mockDownloadAndAnalyze.mockResolvedValueOnce({
-        format: 'PNG',
-        width: 6000,
-        height: 6000,
-        channels: 4,
-        sizeBytes: 2 * 1024 * 1024,
-        buffer: Buffer.from('large-image'),
-      })
-
-      ctx.session.command = CommandEnum.Download
-      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
-      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/large.png' } as any)
-
-      await handler.events.message!(ctx)
-
-      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
-      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
-    })
-
-    it('should reject files above the free plan size limit', async () => {
+    it('should reject files above the free plan size limit with a file size message', async () => {
       mockDownloadAndAnalyze.mockRejectedValueOnce(new ImageTooLargeError())
 
       ctx.session.command = CommandEnum.Download
-      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/big.jpg' } as any)
 
       await handler.events.message!(ctx)
 
       expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/big.jpg', MAX_FILE_SIZE)
-      expect(ctx.reply).toHaveBeenCalledWith('free_limit_reached')
+      expect(ctx.reply).toHaveBeenCalledWith('download_too_large')
+      expect(ctx.reply).not.toHaveBeenCalledWith('free_limit_reached')
       expect(ctx.reply).not.toHaveBeenCalledWith('download_fetch_failed')
-      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
       expect(ctx.replyWithDocument).not.toHaveBeenCalled()
       expect(userRepository.decrementUsage).toHaveBeenCalled()
       expect(ctx.session.command).toBeNull()
@@ -279,7 +283,6 @@ describe(DownloadHandler.name, () => {
 
       vi.mocked(userRepository.incrementUsage).mockResolvedValueOnce({ plan_type: PlanTypeEnum.Pro, id: 1 } as any)
       ctx.session.command = CommandEnum.Download
-      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/big.jpg' } as any)
 
       await handler.events.message!(ctx)
@@ -287,6 +290,47 @@ describe(DownloadHandler.name, () => {
       expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/big.jpg', MAX_PRO_FILE_SIZE)
       expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
       expect(userRepository.decrementUsage).not.toHaveBeenCalled()
+    })
+
+    it('should send JPEG and PNG originals as documents instead of photos', async () => {
+      mockDownloadAndAnalyze.mockResolvedValueOnce({
+        format: 'PNG',
+        width: 800,
+        height: 600,
+        channels: 4,
+        sizeBytes: 100 * 1024,
+        buffer: Buffer.from('png-image'),
+      })
+
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.png' } as any)
+
+      await handler.events.message!(ctx)
+
+      const [inputFile] = vi.mocked(ctx.replyWithDocument).mock.calls![0]
+      expect((inputFile as any).name).toBe('download-image.png')
+      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
+      expect((ctx as any).replyWithPhoto).toBeUndefined()
+    })
+
+    it('should send WebP images as documents', async () => {
+      mockDownloadAndAnalyze.mockResolvedValueOnce({
+        format: 'WEBP',
+        width: 800,
+        height: 600,
+        channels: 3,
+        sizeBytes: 100 * 1024,
+        buffer: Buffer.from('webp-image'),
+      })
+
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.webp' } as any)
+
+      await handler.events.message!(ctx)
+
+      const [inputFile] = vi.mocked(ctx.replyWithDocument).mock.calls![0]
+      expect((inputFile as any).name).toBe('download-image.webp')
+      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
     })
 
     it('should describe two-channel images as grayscale with alpha', async () => {
@@ -304,7 +348,7 @@ describe(DownloadHandler.name, () => {
 
       await handler.events.message!(ctx)
 
-      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      expect(ctx.replyWithDocument).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
         caption: expect.stringContaining('Grayscale + Alpha'),
       }))
     })
@@ -325,56 +369,21 @@ describe(DownloadHandler.name, () => {
 
       await handler.events.message!(ctx)
 
-      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      expect(ctx.replyWithDocument).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
         caption: expect.stringContaining('CMYK'),
       }))
     })
 
-    it('should fall back to sending as a document when Telegram rejects the photo', async () => {
+    it('should reply with a send failure when Telegram rejects the document', async () => {
       ctx.session.command = CommandEnum.Download
-      ctx.replyWithPhoto = vi.fn().mockRejectedValue(new GrammyError('Bad Request: PHOTO_INVALID_DIMENSIONS', { ok: false, error_code: 400, description: 'PHOTO_INVALID_DIMENSIONS' }, 'sendPhoto', {})) as any
-      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
+      ctx.replyWithDocument = vi.fn().mockRejectedValue(new GrammyError('Bad Request: file is too big', { ok: false, error_code: 400, description: 'file is too big' }, 'sendDocument', {})) as any
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg' } as any)
 
       await handler.events.message!(ctx)
 
-      expect(ctx.replyWithPhoto).toHaveBeenCalledOnce()
-      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
-      expect(ctx.reply).not.toHaveBeenCalledWith('download_send_failed')
-      expect(userRepository.decrementUsage).not.toHaveBeenCalled()
-    })
-
-    it('should not send a document after a network error on photo sending', async () => {
-      ctx.session.command = CommandEnum.Download
-      ctx.replyWithPhoto = vi.fn().mockRejectedValue(new HttpError('Network request for \'sendPhoto\' failed!', new Error('socket hang up'))) as any
-      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
-      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg' } as any)
-
-      await handler.events.message!(ctx)
-
-      expect(ctx.replyWithDocument).not.toHaveBeenCalled()
       expect(ctx.reply).toHaveBeenCalledWith('download_send_failed')
       expect(userRepository.decrementUsage).toHaveBeenCalled()
-    })
-
-    it('should send WebP images as documents without trying a photo', async () => {
-      mockDownloadAndAnalyze.mockResolvedValueOnce({
-        format: 'WEBP',
-        width: 800,
-        height: 600,
-        channels: 3,
-        sizeBytes: 100 * 1024,
-        buffer: Buffer.from('webp-image'),
-      })
-
-      ctx.session.command = CommandEnum.Download
-      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
-      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.webp' } as any)
-
-      await handler.events.message!(ctx)
-
-      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
-      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.session.command).toBeNull()
     })
 
     it('should reply with an unexpected error when the user is missing', async () => {

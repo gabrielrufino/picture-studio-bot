@@ -1,29 +1,13 @@
 import type { UserRepository } from '@/repositories/user.repository'
 import type { ImageInfo } from '@/services/image-downloader.service'
 import type { CustomContext } from '@/types/custom-context.type'
-import { GrammyError, InputFile } from 'grammy'
+import { InputFile } from 'grammy'
 import { MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { CommandEnum } from '@/enums/command.enum'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
-import { ImageInvalidUrlError, ImageNotImageError, ImageSendError, ImageSsrfBlockError, ImageTooLargeError, UserNotFoundError } from '@/errors'
+import { ImageFetchError, ImageInvalidUrlError, ImageNotImageError, ImageSendError, ImageSsrfBlockError, ImageTooLargeError, ImageTooManyRedirectsError, UserNotFoundError } from '@/errors'
 import { ImageDownloaderService } from '@/services/image-downloader.service'
 import { BaseHandler } from './base.handler'
-
-const TELEGRAM_PHOTO_MAX_BYTES = 10 * 1024 * 1024
-const TELEGRAM_PHOTO_MAX_DIMENSIONS_SUM = 10_000
-const TELEGRAM_PHOTO_MAX_ASPECT_RATIO = 20
-const TELEGRAM_PHOTO_FORMATS = new Set(['JPEG', 'PNG'])
-
-function canSendAsPhoto(info: ImageInfo): boolean {
-  if (!TELEGRAM_PHOTO_FORMATS.has(info.format) || info.sizeBytes > TELEGRAM_PHOTO_MAX_BYTES || !info.width || !info.height) {
-    return false
-  }
-
-  const longest = Math.max(info.width, info.height)
-  const shortest = Math.min(info.width, info.height)
-  return info.width + info.height <= TELEGRAM_PHOTO_MAX_DIMENSIONS_SUM
-    && longest / shortest <= TELEGRAM_PHOTO_MAX_ASPECT_RATIO
-}
 
 function imageExtension(format: string): string {
   switch (format.toLowerCase()) {
@@ -103,23 +87,11 @@ export class DownloadHandler extends BaseHandler {
         await this.runWithUsage(ctx, this.userRepository, async () => {
           const info = await this.downloader.downloadAndAnalyze(url, maxFileSize(ctx))
           const inputFile = new InputFile(info.buffer, `download-image${imageExtension(info.format)}`)
-          const options = {
-            caption: this.buildCaption(ctx, info),
-          }
 
           try {
-            if (canSendAsPhoto(info)) {
-              await ctx.replyWithPhoto(inputFile, options).catch(async (error) => {
-                if (!(error instanceof GrammyError)) {
-                  throw error
-                }
-                this.logger.error(error)
-                await ctx.replyWithDocument(inputFile, options)
-              })
-            }
-            else {
-              await ctx.replyWithDocument(inputFile, options)
-            }
+            await ctx.replyWithDocument(inputFile, {
+              caption: this.buildCaption(ctx, info),
+            })
           }
           catch (error) {
             this.logger.error(error)
@@ -140,7 +112,7 @@ export class DownloadHandler extends BaseHandler {
           await ctx.reply(ctx.t('download_ssrf_blocked'))
         }
         else if (error instanceof ImageTooLargeError) {
-          await this.notifyLimitExceeded(ctx)
+          await ctx.reply(ctx.t('download_too_large'))
         }
         else if (error instanceof ImageInvalidUrlError) {
           await ctx.reply(ctx.t('download_invalid_url'))
@@ -148,6 +120,9 @@ export class DownloadHandler extends BaseHandler {
         else if (error instanceof UserNotFoundError) {
           this.logger.error(error)
           await ctx.reply(ctx.t('unexpected_error'))
+        }
+        else if (error instanceof ImageFetchError || error instanceof ImageTooManyRedirectsError) {
+          await ctx.reply(ctx.t('download_fetch_failed'))
         }
         else {
           this.logger.error(error)
@@ -166,7 +141,7 @@ export class DownloadHandler extends BaseHandler {
 
   /** Extract the first http(s) URL from text, dropping trailing punctuation and unbalanced closing parentheses. */
   private extractUrl(text: string): string | null {
-    const match = text.match(/https?:\/\/[^\s<>"'[\]{}]+/)
+    const match = text.match(/https?:\/\/[^\s<>"'[\]{}]+/i)
     if (!match) {
       return null
     }
