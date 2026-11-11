@@ -9,6 +9,7 @@ A Telegram bot for processing and manipulating images.
 - ✂️ **Crop** - Crop images to custom dimensions
 - 📐 **Resize** - Resize images to preset dimensions
 - 🔄 **Rotate** - Rotate images by 90°, 180°, or -90°
+- 🔗 **Download** - Download an image from a URL
 - 💧 **Watermark** - Apply a watermark to batches of photos, choosing corners and size
 
 ## Getting started
@@ -37,6 +38,7 @@ A Telegram bot for processing and manipulating images.
 - `/info` - Get image info
 - `/resize` - Resize an image
 - `/rotate` - Rotate an image
+- `/download` - Download an image from a URL
 - `/watermark` - Apply a watermark to up to 3 photos (Free) or 100 photos (Pro) per operation
 - `/pro` - Upgrade to Pro
 - `/language` - Change language

@@ -3,6 +3,7 @@ import { configurationRepository, feedbackRepository, paymentRepository, userRep
 import { CompressHandler } from './compress.handler'
 import { ConvertHandler } from './convert.handler'
 import { CropHandler } from './crop.handler'
+import { DownloadHandler } from './download.handler'
 import { FeedbackHandler } from './feedback.handler'
 import { HelpHandler } from './help.handler'
 import { InfoHandler } from './info.handler'
@@ -18,6 +19,7 @@ const coreHandlers: Array<BaseHandler> = [
   new CompressHandler(userRepository),
   new ConvertHandler(userRepository),
   new CropHandler(userRepository),
+  new DownloadHandler(userRepository),
   new FeedbackHandler(feedbackRepository),
   new InfoHandler(userRepository),
   new LanguageHandler(userRepository),

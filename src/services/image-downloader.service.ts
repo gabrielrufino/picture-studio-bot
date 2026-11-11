@@ -1,0 +1,237 @@
+import { Buffer } from 'node:buffer'
+import dns from 'node:dns/promises'
+import ipaddr from 'ipaddr.js'
+import sharp from 'sharp'
+import { ImageFetchError, ImageInvalidUrlError, ImageNotImageError, ImageSsrfBlockError, ImageTooLargeError, ImageTooManyRedirectsError } from '@/errors'
+
+export interface ImageInfo {
+  format: string
+  width?: number
+  height?: number
+  channels?: number
+  sizeBytes: number
+}
+
+const SUPPORTED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+  'image/tiff',
+])
+
+const ascii = (text: string): number[] => [...text].map(char => char.charCodeAt(0))
+
+const IMAGE_SIGNATURES: ReadonlyArray<{ offset: number, sig: readonly number[] }> = [
+  {
+    offset: 0,
+    sig: [0xFF, 0xD8, 0xFF],
+  },
+  {
+    offset: 0,
+    sig: [0x89, 0x50, 0x4E, 0x47],
+  },
+  {
+    offset: 8,
+    sig: ascii('WEBP'),
+  },
+  {
+    offset: 0,
+    sig: ascii('GIF8'),
+  },
+  {
+    offset: 0,
+    sig: [0x49, 0x49, 0x2A, 0x00],
+  },
+  {
+    offset: 0,
+    sig: [0x4D, 0x4D, 0x00, 0x2A],
+  },
+  {
+    offset: 4,
+    sig: ascii('ftypavif'),
+  },
+  {
+    offset: 4,
+    sig: ascii('ftypavis'),
+  },
+]
+
+const REDIRECT_STATUSES = [301, 302, 303, 307, 308]
+const MAX_REDIRECTS = 5
+const MAX_BYTES = 50 * 1024 * 1024
+const FETCH_TIMEOUT_MS = 30_000
+
+export class ImageDownloaderService {
+  public async downloadAndAnalyze(url: string, signal?: AbortSignal): Promise<ImageInfo & { buffer: Buffer }> {
+    if (!this.isValidUrl(url)) {
+      throw new ImageInvalidUrlError()
+    }
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    const mergedSignal = signal
+      ? AbortSignal.any([signal, controller.signal])
+      : controller.signal
+
+    try {
+      const response = await this.fetchWithChecks(url, mergedSignal)
+
+      if (!this.isSupportedContentType(response.headers.get('content-type'))) {
+        throw new ImageNotImageError()
+      }
+
+      if (!response.body) {
+        throw new ImageFetchError()
+      }
+
+      const buffer = await this.readBody(response.body)
+      this.assertImageSignature(buffer)
+
+      const meta = await sharp(buffer).metadata().catch(() => {
+        throw new ImageNotImageError()
+      })
+
+      if (!meta.format) {
+        throw new ImageNotImageError()
+      }
+
+      return {
+        format: meta.format.toUpperCase(),
+        width: meta.width,
+        height: meta.height,
+        channels: meta.channels,
+        sizeBytes: buffer.byteLength,
+        buffer,
+      }
+    }
+    finally {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  private isValidUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url)
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    }
+    catch {
+      return false
+    }
+  }
+
+  private isSupportedContentType(contentType: string | null): boolean {
+    const mimeType = (contentType ?? '').split(';')[0].trim().toLowerCase()
+    return SUPPORTED_MIME_TYPES.has(mimeType)
+  }
+
+  private async readBody(body: NonNullable<Response['body']>): Promise<Buffer> {
+    const chunks: Uint8Array[] = []
+    let total = 0
+
+    for await (const chunk of body) {
+      total += chunk.byteLength
+      if (total > MAX_BYTES) {
+        throw new ImageTooLargeError()
+      }
+      chunks.push(chunk)
+    }
+
+    return Buffer.concat(chunks)
+  }
+
+  private async fetchWithChecks(url: string, signal: AbortSignal): Promise<Response> {
+    let currentUrl = url
+    let redirects = 0
+
+    while (true) {
+      await this.assertPublicHost(currentUrl)
+
+      const response = await fetch(currentUrl, {
+        redirect: 'manual',
+        signal,
+      })
+
+      if (!REDIRECT_STATUSES.includes(response.status)) {
+        if (response.status !== 200) {
+          throw new ImageFetchError()
+        }
+
+        const contentLength = Number(response.headers.get('content-length'))
+        if (contentLength > MAX_BYTES) {
+          throw new ImageTooLargeError()
+        }
+
+        return response
+      }
+
+      const location = response.headers.get('location')
+      if (!location) {
+        throw new ImageFetchError()
+      }
+
+      if (redirects >= MAX_REDIRECTS) {
+        throw new ImageTooManyRedirectsError()
+      }
+
+      redirects++
+      currentUrl = new URL(location, currentUrl).href
+    }
+  }
+
+  private async assertPublicHost(url: string): Promise<void> {
+    const hostname = this.extractHostname(url)
+    if (!hostname) {
+      throw new ImageSsrfBlockError()
+    }
+
+    if (ipaddr.isValid(hostname)) {
+      if (this.isIpBlocked(hostname)) {
+        throw new ImageSsrfBlockError()
+      }
+      return
+    }
+
+    const addresses = await dns.lookup(hostname, { all: true }).catch(() => {
+      throw new ImageFetchError()
+    })
+
+    if (addresses.some(({ address }) => this.isIpBlocked(address))) {
+      throw new ImageSsrfBlockError()
+    }
+  }
+
+  private extractHostname(url: string): string {
+    try {
+      return new URL(url).hostname.replace(/^\[(.*)\]$/, '$1')
+    }
+    catch {
+      return ''
+    }
+  }
+
+  private isIpBlocked(address: string): boolean {
+    try {
+      return ipaddr.parse(address).range() !== 'unicast'
+    }
+    catch {
+      return true
+    }
+  }
+
+  private assertImageSignature(buffer: Buffer): void {
+    const matches = IMAGE_SIGNATURES.some(({ offset, sig }) => this.matchSignature(buffer, sig, offset))
+    if (!matches) {
+      throw new ImageNotImageError()
+    }
+  }
+
+  private matchSignature(buffer: Buffer, signature: readonly number[], offset = 0): boolean {
+    if (buffer.length < offset + signature.length) {
+      return false
+    }
+    return signature.every((byte, i) => buffer[offset + i] === byte)
+  }
+}
