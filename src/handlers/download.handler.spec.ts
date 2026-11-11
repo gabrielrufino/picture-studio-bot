@@ -5,6 +5,7 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CommandEnum } from '@/enums/command.enum'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
 import { ImageNotImageError } from '@/errors'
 import { DownloadHandler } from './download.handler'
 
@@ -132,12 +133,15 @@ describe(DownloadHandler.name, () => {
       expect(ctx.reply).not.toHaveBeenCalled()
     })
 
-    it('should ignore non-text messages', async () => {
+    it('should prompt for a URL on non-text messages and keep the session', async () => {
       ctx.session.command = CommandEnum.Download
       vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '' } as any)
 
       await handler.events.message!(ctx)
-      expect(ctx.reply).not.toHaveBeenCalled()
+
+      expect(ctx.reply).toHaveBeenCalledWith('download_prompt')
+      expect(ctx.session.command).toBe(CommandEnum.Download)
+      expect(mockDownloadAndAnalyze).not.toHaveBeenCalled()
     })
 
     it('should send photo with metadata caption on valid URL', async () => {
@@ -223,13 +227,13 @@ describe(DownloadHandler.name, () => {
       expect(ctx.session.command).toBeNull()
     })
 
-    it('should send images above the Telegram photo limit as documents', async () => {
+    it('should send images above the Telegram photo dimension limit as documents', async () => {
       mockDownloadAndAnalyze.mockResolvedValueOnce({
         format: 'PNG',
-        width: 4000,
-        height: 4000,
+        width: 6000,
+        height: 6000,
         channels: 4,
-        sizeBytes: 12 * 1024 * 1024,
+        sizeBytes: 2 * 1024 * 1024,
         buffer: Buffer.from('large-image'),
       })
 
@@ -241,6 +245,51 @@ describe(DownloadHandler.name, () => {
 
       expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+    })
+
+    it('should reject files above the free plan size limit', async () => {
+      mockDownloadAndAnalyze.mockResolvedValueOnce({
+        format: 'JPEG',
+        width: 1920,
+        height: 1080,
+        channels: 3,
+        sizeBytes: 11 * 1024 * 1024,
+        buffer: Buffer.from('big-image'),
+      })
+
+      ctx.session.command = CommandEnum.Download
+      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/big.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.reply).toHaveBeenCalledWith('free_limit_reached')
+      expect(ctx.reply).not.toHaveBeenCalledWith('download_fetch_failed')
+      expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
+      expect(ctx.replyWithDocument).not.toHaveBeenCalled()
+      expect(userRepository.decrementUsage).toHaveBeenCalled()
+      expect(ctx.session.command).toBeNull()
+    })
+
+    it('should send files above the free plan size limit for Pro users', async () => {
+      mockDownloadAndAnalyze.mockResolvedValueOnce({
+        format: 'JPEG',
+        width: 1920,
+        height: 1080,
+        channels: 3,
+        sizeBytes: 11 * 1024 * 1024,
+        buffer: Buffer.from('big-image'),
+      })
+
+      vi.mocked(userRepository.incrementUsage).mockResolvedValueOnce({ plan_type: PlanTypeEnum.Pro, id: 1 } as any)
+      ctx.session.command = CommandEnum.Download
+      ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/big.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
+      expect(userRepository.decrementUsage).not.toHaveBeenCalled()
     })
 
     it('should fall back to sending as a document when photo sending fails', async () => {

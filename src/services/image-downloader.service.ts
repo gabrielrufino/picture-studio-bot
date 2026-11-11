@@ -86,6 +86,7 @@ export class ImageDownloaderService {
       const response = await this.fetchWithChecks(url, controller.signal)
 
       if (!this.isSupportedContentType(response.headers.get('content-type'))) {
+        await response.body?.cancel()
         throw new ImageNotImageError()
       }
 
@@ -105,7 +106,10 @@ export class ImageDownloaderService {
       }
 
       return {
-        format: meta.format.toUpperCase(),
+        // sharp reports AVIF as "heif"; the AVIF signature check above guarantees the container is AVIF here
+        format: (meta.format === 'heif'
+          ? 'avif'
+          : meta.format).toUpperCase(),
         width: meta.width,
         height: meta.height,
         channels: meta.channels,

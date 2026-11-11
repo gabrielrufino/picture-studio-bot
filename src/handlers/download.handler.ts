@@ -3,7 +3,7 @@ import type { ImageInfo } from '@/services/image-downloader.service'
 import type { CustomContext } from '@/types/custom-context.type'
 import { InputFile } from 'grammy'
 import { CommandEnum } from '@/enums/command.enum'
-import { ImageInvalidUrlError, ImageNotImageError, ImageSendError, ImageSsrfBlockError, ImageTooLargeError, UserNotFoundError } from '@/errors'
+import { ImageInvalidUrlError, ImageNotImageError, ImageSendError, ImageSsrfBlockError, ImageTooLargeError, LimitExceededError, UserNotFoundError } from '@/errors'
 import { ImageDownloaderService } from '@/services/image-downloader.service'
 import { BaseHandler } from './base.handler'
 
@@ -70,8 +70,12 @@ export class DownloadHandler extends BaseHandler {
           throw new UserNotFoundError()
         }
 
-        // Only process when session is waiting for URL
-        if (ctx.session.command !== CommandEnum.Download || !ctx.message?.text) {
+        if (ctx.session.command !== CommandEnum.Download) {
+          return
+        }
+
+        if (!ctx.message?.text) {
+          await ctx.reply(ctx.t('download_prompt'))
           return
         }
 
@@ -84,6 +88,7 @@ export class DownloadHandler extends BaseHandler {
 
         await this.runWithUsage(ctx, this.userRepository, async () => {
           const info = await this.downloader.downloadAndAnalyze(url)
+          await this.checkLimits(ctx, { fileSize: info.sizeBytes })
           const inputFile = new InputFile(info.buffer, `download-image${imageExtension(info.format)}`)
           const options = {
             caption: this.buildCaption(ctx, info),
@@ -109,7 +114,10 @@ export class DownloadHandler extends BaseHandler {
         await this.resetSession(ctx)
       }
       catch (error) {
-        if (error instanceof ImageNotImageError) {
+        if (error instanceof LimitExceededError) {
+          // checkLimits already notified the user
+        }
+        else if (error instanceof ImageNotImageError) {
           await ctx.reply(ctx.t('download_not_image'))
         }
         else if (error instanceof ImageSendError) {

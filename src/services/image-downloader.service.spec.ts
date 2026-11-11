@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer'
 import dns from 'node:dns/promises'
 
+import sharp from 'sharp'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ImageFetchError, ImageInvalidUrlError, ImageNotImageError, ImageSsrfBlockError, ImageTooLargeError } from '@/errors'
@@ -64,6 +65,10 @@ const WEBP_MAGIC = Buffer.from([
   0x45,
   0x42,
   0x50,
+])
+const AVIF_MAGIC = Buffer.concat([
+  Buffer.alloc(4),
+  Buffer.from('ftypavif'),
 ])
 const GIF_MAGIC = Buffer.from([
   0x47,
@@ -143,6 +148,22 @@ describe(ImageDownloaderService.name, () => {
       expect(result.sizeBytes).toBe(magic.byteLength)
     })
 
+    it('should report AVIF when sharp reports the container as heif', async () => {
+      vi.mocked(sharp).mockImplementationOnce(() => ({
+        metadata: vi.fn().mockResolvedValue({
+          format: 'heif',
+          width: 100,
+          height: 100,
+          channels: 4,
+        }),
+      }) as any)
+      vi.stubGlobal('fetch', createMockFetch(200, { 'content-type': 'image/avif' }, [AVIF_MAGIC]))
+
+      const result = await service.downloadAndAnalyze('https://example.com/image.avif')
+
+      expect(result.format).toBe('AVIF')
+    })
+
     it('should throw ImageInvalidUrlError for non-http schemes', async () => {
       await expect(service.downloadAndAnalyze('file:///tmp/image.jpg')).rejects.toThrow(ImageInvalidUrlError)
       await expect(service.downloadAndAnalyze('data:image/png;base64,abc')).rejects.toThrow(ImageInvalidUrlError)
@@ -182,6 +203,25 @@ describe(ImageDownloaderService.name, () => {
       vi.stubGlobal('fetch', createMockFetch(200, { 'content-type': 'application/json' }))
 
       await expect(service.downloadAndAnalyze('https://example.com/file.json')).rejects.toThrow(ImageNotImageError)
+    })
+
+    it('should cancel the response body when the content-type is not an image', async () => {
+      const cancel = vi.fn().mockResolvedValue(undefined)
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        status: 200,
+        headers: {
+          get: (key: string) => key === 'content-type'
+            ? 'application/json'
+            : null,
+        },
+        body: {
+          cancel,
+          async* [Symbol.asyncIterator]() {},
+        },
+      }))
+
+      await expect(service.downloadAndAnalyze('https://example.com/file.json')).rejects.toThrow(ImageNotImageError)
+      expect(cancel).toHaveBeenCalledOnce()
     })
 
     it('should throw ImageNotImageError for PDF content-type', async () => {
