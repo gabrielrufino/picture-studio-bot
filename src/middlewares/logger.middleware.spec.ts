@@ -11,7 +11,10 @@ vi.mock('../config/logger', () => ({
 describe(loggerMiddleware.name, () => {
   it('should log user info and call next', async () => {
     const next = vi.fn()
-    const ctx = { t: (key: string) => key, from: { id: 12345, first_name: 'Test' } } as any
+    const ctx = {
+      t: (key: string) => key,
+      from: { id: 12345, first_name: 'Test' },
+    } as any
 
     await loggerMiddleware(ctx, next)
 

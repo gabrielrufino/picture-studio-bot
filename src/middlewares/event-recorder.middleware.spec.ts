@@ -38,10 +38,12 @@ describe(eventRecorderMiddleware.name, () => {
     }
     await eventRecorderMiddleware(ctx, next)
     expect(next).toHaveBeenCalled()
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.CommandStart,
-      telegram_user: { id: 123 },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.CommandStart,
+        telegram_user: { id: 123 },
+      }),
+    ])
   })
 
   it('should record specific ButtonPro if callbackQuery data is pro', async () => {
@@ -51,10 +53,12 @@ describe(eventRecorderMiddleware.name, () => {
     }
     await eventRecorderMiddleware(ctx, next)
     expect(next).toHaveBeenCalled()
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.ButtonPro,
-      telegram_user: { id: 123 },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.ButtonPro,
+        telegram_user: { id: 123 },
+      }),
+    ])
   })
 
   it('should record specific CommandWatermark if message text starts with /watermark', async () => {
@@ -63,10 +67,12 @@ describe(eventRecorderMiddleware.name, () => {
       message: { text: '/watermark' },
     }
     await eventRecorderMiddleware(ctx, next)
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.CommandWatermark,
-      telegram_user: { id: 123 },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.CommandWatermark,
+        telegram_user: { id: 123 },
+      }),
+    ])
   })
 
   it('should record specific ButtonWatermark if callbackQuery data is watermark', async () => {
@@ -75,10 +81,12 @@ describe(eventRecorderMiddleware.name, () => {
       callbackQuery: { data: 'watermark' },
     }
     await eventRecorderMiddleware(ctx, next)
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.ButtonWatermark,
-      telegram_user: { id: 123 },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.ButtonWatermark,
+        telegram_user: { id: 123 },
+      }),
+    ])
   })
 
   it('should record CommandInfo if message text starts with /info', async () => {
@@ -87,10 +95,12 @@ describe(eventRecorderMiddleware.name, () => {
       message: { text: '/info' },
     }
     await eventRecorderMiddleware(ctx, next)
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.CommandInfo,
-      telegram_user: { id: 123 },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.CommandInfo,
+        telegram_user: { id: 123 },
+      }),
+    ])
   })
 
   it('should record CommandInfo when the command is addressed to this bot', async () => {
@@ -101,10 +111,12 @@ describe(eventRecorderMiddleware.name, () => {
     }
     await eventRecorderMiddleware(ctx, next)
     expect(next).toHaveBeenCalled()
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.CommandInfo,
-      telegram_user: { id: 123 },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.CommandInfo,
+        telegram_user: { id: 123 },
+      }),
+    ])
   })
 
   it('should not record a command addressed to another bot', async () => {
@@ -124,24 +136,30 @@ describe(eventRecorderMiddleware.name, () => {
       callbackQuery: { data: 'info' },
     }
     await eventRecorderMiddleware(ctx, next)
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.ButtonInfo,
-      telegram_user: { id: 123 },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.ButtonInfo,
+        telegram_user: { id: 123 },
+      }),
+    ])
   })
 
   it('should record FileReceived if document is present', async () => {
     const ctx: any = {
       from: { id: 123 },
-      message: { document: { mime_type: 'application/pdf' } },
+      message: {
+        document: { mime_type: 'application/pdf' },
+      },
     }
     await eventRecorderMiddleware(ctx, next)
     expect(next).toHaveBeenCalled()
-    expect(eventRepository.insertMany).toHaveBeenCalledWith([expect.objectContaining({
-      event: EventEnum.FileReceived,
-      telegram_user: { id: 123 },
-      metadata: { mime_type: 'application/pdf' },
-    })])
+    expect(eventRepository.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        event: EventEnum.FileReceived,
+        telegram_user: { id: 123 },
+        metadata: { mime_type: 'application/pdf' },
+      }),
+    ])
   })
 
   it('should not record anything for unknown command', async () => {

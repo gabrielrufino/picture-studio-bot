@@ -68,9 +68,15 @@ describe(CompressHandler.name, () => {
       t: vi.fn(key => key),
       reply: vi.fn(),
       replyWithPhoto: vi.fn(),
-      getFile: vi.fn().mockResolvedValue({ download: vi.fn().mockResolvedValue('/tmp/input.jpg') }),
+      getFile: vi.fn().mockResolvedValue({
+        download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
+      }),
       session: { params: {} },
-      message: { photo: [{ file_id: 'photo1', file_size: 100 }] },
+      message: {
+        photo: [
+          { file_id: 'photo1', file_size: 100 },
+        ],
+      },
     } as unknown as CustomContext
   })
 
@@ -177,7 +183,9 @@ describe(CompressHandler.name, () => {
       })
 
       it('should throw error when file download fails', async () => {
-        ctx.getFile = vi.fn().mockResolvedValue({ download: vi.fn().mockResolvedValue(undefined) })
+        ctx.getFile = vi.fn().mockResolvedValue({
+          download: vi.fn().mockResolvedValue(undefined),
+        })
 
         await handler.events['msg:photo']!(ctx)
 

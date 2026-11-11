@@ -59,7 +59,9 @@ async function main() {
         command = CommandEnum.Help
       }
 
-      const handler = command ? handlersMap.get(command) : undefined
+      const handler = command
+        ? handlersMap.get(command)
+        : undefined
       const eventHandler = handler?.events[event]
 
       if (!handler || !eventHandler) {

@@ -97,7 +97,9 @@ export class ConvertHandler extends BaseHandler {
             .toFormat(format as 'jpeg' | 'png' | 'webp')
             .toBuffer()
 
-          const ext = format === 'jpeg' ? 'jpg' : format
+          const ext = format === 'jpeg'
+            ? 'jpg'
+            : format
           outputPath = join(os.tmpdir(), `convert-${crypto.randomUUID()}.${ext}`)
           await fs.writeFile(outputPath, buffer)
 

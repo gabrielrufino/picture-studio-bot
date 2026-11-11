@@ -68,7 +68,9 @@ export class ProHandler extends BaseHandler {
         const updated = await this.userRepository.updateById(
           user._id,
           { plan_type: PlanTypeEnum.Free, plan_started_at: null },
-          { filter: { plan_started_at: planStartedAt } },
+          {
+            filter: { plan_started_at: planStartedAt },
+          },
         )
         if (!updated) {
           const refreshed = await this.userRepository.findByTelegramId(userId)
@@ -79,7 +81,9 @@ export class ProHandler extends BaseHandler {
           }
 
           const currentStartedAt = refreshed.plan_started_at ?? planStartedAt
-          await ctx.reply(ctx.t('subscription_info').replace('{date}', currentStartedAt ? new Date(currentStartedAt).toLocaleDateString(locale) : '-'), { parse_mode: 'HTML' })
+          await ctx.reply(ctx.t('subscription_info').replace('{date}', currentStartedAt
+            ? new Date(currentStartedAt).toLocaleDateString(locale)
+            : '-'), { parse_mode: 'HTML' })
           await this.resetSession(ctx)
           return
         }
@@ -89,7 +93,9 @@ export class ProHandler extends BaseHandler {
         return
       }
 
-      const date = planStartedAt ? new Date(planStartedAt).toLocaleDateString(locale) : '-'
+      const date = planStartedAt
+        ? new Date(planStartedAt).toLocaleDateString(locale)
+        : '-'
       await ctx.reply(ctx.t('subscription_info').replace('{date}', date), { parse_mode: 'HTML' })
       await this.resetSession(ctx)
       return
@@ -104,7 +110,9 @@ export class ProHandler extends BaseHandler {
       ctx.t('pro_upgrade'),
       'picture-studio-pro-subscription',
       CurrencyEnum.XTR,
-      [{ label: 'PRO Subscription', amount: pro_price }],
+      [
+        { label: 'PRO Subscription', amount: pro_price },
+      ],
       {
         provider_token: '',
       },

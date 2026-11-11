@@ -108,7 +108,9 @@ describe(WatermarkHandler.name, () => {
 
   function setPhoto(fileId = 'photo-1', fileSize = 100) {
     ;(ctx as any).message = {
-      photo: [{ file_id: fileId, file_size: fileSize }],
+      photo: [
+        { file_id: fileId, file_size: fileSize },
+      ],
     } as any
   }
 
@@ -125,7 +127,11 @@ describe(WatermarkHandler.name, () => {
   function setCallback(data: string, messageId?: number) {
     ;(ctx as any).callbackQuery = {
       data,
-      ...(messageId !== undefined ? { message: { message_id: messageId } } : {}),
+      ...(messageId !== undefined
+        ? {
+            message: { message_id: messageId },
+          }
+        : {}),
     } as any
   }
 
@@ -136,7 +142,11 @@ describe(WatermarkHandler.name, () => {
     height?: number
   } = {}) {
     const format = options.format ?? 'jpeg'
-    const extension = format === 'jpeg' ? 'jpg' : format === 'heif' ? 'avif' : format
+    const extension = format === 'jpeg'
+      ? 'jpg'
+      : format === 'heif'
+        ? 'avif'
+        : format
     const path = `/tmp/${fileId}.${extension}`
     const width = options.width ?? 1000
     const height = options.height ?? 800
@@ -219,7 +229,9 @@ describe(WatermarkHandler.name, () => {
 
     handler = new WatermarkHandler(userRepository)
     // @ts-expect-error logger is protected
-    handler.logger = { error: vi.fn() }
+    handler.logger = {
+      error: vi.fn(),
+    }
     ;(handler as any).chunkDelayMs = 0
 
     ctx = {
@@ -358,7 +370,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ask for the watermark file when a photo arrives at that step', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['photo-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['photo-1'],
+      })
       setPhoto('photo-2')
 
       await handler.events['msg:photo']!(ctx)
@@ -411,7 +426,13 @@ describe(WatermarkHandler.name, () => {
       })
     })
 
-    it.each(['image/gif', 'image/svg+xml', 'image/heic', 'application/pdf', 'missing'])(
+    it.each([
+      'image/gif',
+      'image/svg+xml',
+      'image/heic',
+      'application/pdf',
+      'missing',
+    ])(
       'should reject unsupported mime type %s without collecting it',
       async (mimeType) => {
         if (mimeType === 'missing') {
@@ -461,7 +482,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should move to the watermark step when /ready is sent with photos', async () => {
-      setParams({ base_file_ids: ['photo-1'] })
+      setParams({
+        base_file_ids: ['photo-1'],
+      })
       setText('/ready')
 
       await handler.events['msg:text']!(ctx)
@@ -471,7 +494,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should accept /ready with the bot username', async () => {
-      setParams({ base_file_ids: ['photo-1'] })
+      setParams({
+        base_file_ids: ['photo-1'],
+      })
       setText('/ready@picture_studio_bot')
 
       await handler.events['msg:text']!(ctx)
@@ -480,7 +505,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore unrelated text', async () => {
-      setParams({ base_file_ids: ['photo-1'] })
+      setParams({
+        base_file_ids: ['photo-1'],
+      })
       setText('hello')
 
       await handler.events['msg:text']!(ctx)
@@ -490,7 +517,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore /ready outside the collection step', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['photo-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['photo-1'],
+      })
       setText('/ready')
 
       await handler.events['msg:text']!(ctx)
@@ -501,7 +531,10 @@ describe(WatermarkHandler.name, () => {
 
   describe('watermark file', () => {
     it('should validate the file, check transparency and move to positions', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['base-1'],
+      })
       setDocument('mark', 'image/png')
       downloads.set('mark', '/tmp/mark.png')
       metadata().set('/tmp/mark.png', {
@@ -524,7 +557,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should enforce the limit against the downloaded watermark size', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['base-1'],
+      })
       setDocument('mark', 'image/png')
       downloads.set('mark', '/tmp/mark.png')
       metadata().set('/tmp/mark.png', {
@@ -543,7 +579,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should warn when the watermark has no transparency', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['base-1'],
+      })
       setDocument('mark', 'image/jpeg')
       downloads.set('mark', '/tmp/mark.jpg')
       metadata().set('/tmp/mark.jpg', {
@@ -558,12 +597,17 @@ describe(WatermarkHandler.name, () => {
 
       expect(ctx.reply).toHaveBeenCalledWith(
         'watermark_choose_positions\n\nwatermark_no_transparency',
-        { reply_markup: expect.any(InlineKeyboard) },
+        {
+          reply_markup: expect.any(InlineKeyboard),
+        },
       )
     })
 
     it('should reject an unsupported watermark mime type', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['base-1'],
+      })
       setDocument('mark', 'image/gif')
 
       await handler.events['msg:document']!(ctx)
@@ -573,7 +617,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should reject an invalid watermark image', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['base-1'],
+      })
       setDocument('mark', 'image/png')
       downloads.set('mark', '/tmp/mark.png')
       metadata().set('/tmp/mark.png', new Error('invalid'))
@@ -585,7 +632,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should reject a watermark without dimensions', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['base-1'],
+      })
       setDocument('mark', 'image/png')
       downloads.set('mark', '/tmp/mark.png')
       metadata().set('/tmp/mark.png', {
@@ -603,7 +653,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should silence file size limit errors', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['base-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['base-1'],
+      })
       vi.spyOn(handler as any, 'checkLimits').mockRejectedValueOnce(new LimitExceededError())
       setDocument('mark', 'image/png')
 
@@ -629,7 +682,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should move to the watermark step when ready is pressed with photos', async () => {
-      setParams({ base_file_ids: ['photo-1'], callback_message_id: 100 })
+      setParams({
+        base_file_ids: ['photo-1'],
+        callback_message_id: 100,
+      })
       setCallback('watermark_ready', 100)
 
       await handler.events.callback_query!(ctx)
@@ -640,7 +696,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore ready when the collection is already finished', async () => {
-      setParams({ step: 'awaiting_watermark', base_file_ids: ['photo-1'] })
+      setParams({
+        step: 'awaiting_watermark',
+        base_file_ids: ['photo-1'],
+      })
       setCallback('watermark_ready')
 
       await handler.events.callback_query!(ctx)
@@ -650,7 +709,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore a ready callback from a stale keyboard', async () => {
-      setParams({ base_file_ids: ['photo-1'], callback_message_id: 100 })
+      setParams({
+        base_file_ids: ['photo-1'],
+        callback_message_id: 100,
+      })
       setCallback('watermark_ready', 999)
 
       await handler.events.callback_query!(ctx)
@@ -677,7 +739,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should remove an already selected corner', async () => {
-      prepareConfigured({ positions: ['top-left', 'bottom-right'] })
+      prepareConfigured({
+        positions: ['top-left', 'bottom-right'],
+      })
       setCallback('watermark_toggle_tl', 100)
 
       await handler.events.callback_query!(ctx)
@@ -710,7 +774,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should move to the scale step after applying', async () => {
-      prepareConfigured({ positions: ['top-left'] })
+      prepareConfigured({
+        positions: ['top-left'],
+      })
       setCallback('watermark_apply', 100)
 
       await handler.events.callback_query!(ctx)
@@ -722,7 +788,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should go back from scale to corners', async () => {
-      prepareConfigured({ step: 'scale', positions: ['bottom-left'] })
+      prepareConfigured({
+        step: 'scale',
+        positions: ['bottom-left'],
+      })
       setCallback('watermark_back', 100)
 
       await handler.events.callback_query!(ctx)
@@ -746,7 +815,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should accept a callback from the current keyboard', async () => {
-      prepareConfigured({ positions: ['top-left'], callback_message_id: 100 })
+      prepareConfigured({
+        positions: ['top-left'],
+        callback_message_id: 100,
+      })
       setCallback('watermark_apply', 100)
 
       await handler.events.callback_query!(ctx)
@@ -765,7 +837,10 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore an apply callback from an older keyboard', async () => {
-      prepareConfigured({ positions: ['top-left'], callback_message_id: 100 })
+      prepareConfigured({
+        positions: ['top-left'],
+        callback_message_id: 100,
+      })
       setCallback('watermark_apply', 999)
 
       await handler.events.callback_query!(ctx)
@@ -775,7 +850,11 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore a back callback from an older keyboard', async () => {
-      prepareConfigured({ step: 'scale', positions: ['top-left'], callback_message_id: 100 })
+      prepareConfigured({
+        step: 'scale',
+        positions: ['top-left'],
+        callback_message_id: 100,
+      })
       setCallback('watermark_back', 999)
 
       await handler.events.callback_query!(ctx)
@@ -785,7 +864,11 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore a scale callback from an older keyboard', async () => {
-      prepareConfigured({ step: 'scale', positions: ['top-left'], callback_message_id: 100 })
+      prepareConfigured({
+        step: 'scale',
+        positions: ['top-left'],
+        callback_message_id: 100,
+      })
       setCallback('watermark_scale_medium', 999)
 
       await handler.events.callback_query!(ctx)
@@ -853,7 +936,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore a corner callback outside the positions step', async () => {
-      setParams({ base_file_ids: ['photo-1'] })
+      setParams({
+        base_file_ids: ['photo-1'],
+      })
       setCallback('watermark_toggle_tl')
 
       await handler.events.callback_query!(ctx)
@@ -865,7 +950,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore an apply callback outside the positions step', async () => {
-      setParams({ base_file_ids: ['photo-1'] })
+      setParams({
+        base_file_ids: ['photo-1'],
+      })
       setCallback('watermark_apply')
 
       await handler.events.callback_query!(ctx)
@@ -877,7 +964,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore a back callback outside the scale step', async () => {
-      prepareConfigured({ positions: ['top-left'] })
+      prepareConfigured({
+        positions: ['top-left'],
+      })
       setCallback('watermark_back')
 
       await handler.events.callback_query!(ctx)
@@ -888,7 +977,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore a scale callback outside the scale step', async () => {
-      prepareConfigured({ positions: ['top-left'] })
+      prepareConfigured({
+        positions: ['top-left'],
+      })
       setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
@@ -902,7 +993,9 @@ describe(WatermarkHandler.name, () => {
 
   describe('processing', () => {
     it('should send a single document for one photo and count one usage', async () => {
-      prepareProcessing([{ id: 'base-1' }])
+      prepareProcessing([
+        { id: 'base-1' },
+      ])
       setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
@@ -996,7 +1089,12 @@ describe(WatermarkHandler.name, () => {
 
       const formatCalls = vi.mocked(sharp).mock.results.map(result => (result.value as any).toFormat.mock.calls).flat()
 
-      expect(formatCalls).toEqual([['avif', { quality: 90 }]])
+      expect(formatCalls).toEqual([
+        [
+          'avif',
+          { quality: 90 },
+        ],
+      ])
     })
 
     it('should size the watermark based on each photo width', async () => {
@@ -1014,13 +1112,23 @@ describe(WatermarkHandler.name, () => {
       })).filter(({ input }) => Buffer.isBuffer(input)).map(({ instance }) => instance.resize.mock.calls[0])
 
       expect(resizeCalls).toEqual([
-        [200, 100, { fit: 'fill' }],
-        [400, 200, { fit: 'fill' }],
+        [
+          200,
+          100,
+          { fit: 'fill' },
+        ],
+        [
+          400,
+          200,
+          { fit: 'fill' },
+        ],
       ])
     })
 
     it('should place the watermark in the selected corner', async () => {
-      prepareProcessing([{ id: 'base-1', width: 100, height: 100 }], {
+      prepareProcessing([
+        { id: 'base-1', width: 100, height: 100 },
+      ], {
         positions: ['bottom-right'],
         scale: 'auto',
       })
@@ -1040,7 +1148,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should place the watermark correctly on an EXIF-rotated image', async () => {
-      prepareProcessing([{ id: 'base-1', width: 100, height: 50 }], {
+      prepareProcessing([
+        { id: 'base-1', width: 100, height: 50 },
+      ], {
         positions: ['bottom-right'],
         scale: 'auto',
       })
@@ -1159,7 +1269,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should clean up inputs, outputs and the watermark file', async () => {
-      prepareProcessing([{ id: 'base-1' }])
+      prepareProcessing([
+        { id: 'base-1' },
+      ])
       setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
@@ -1173,7 +1285,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should refund the usage when usage cannot be reserved', async () => {
-      prepareProcessing([{ id: 'base-1' }])
+      prepareProcessing([
+        { id: 'base-1' },
+      ])
       vi.mocked(userRepository.incrementUsage).mockResolvedValueOnce(null)
       setCallback('watermark_scale_medium', 100)
 
@@ -1199,8 +1313,13 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should ignore a scale callback when the batch is already processing', async () => {
-      prepareProcessing([{ id: 'base-1' }])
-      ctx.session.params = { ...params(), processing: true }
+      prepareProcessing([
+        { id: 'base-1' },
+      ])
+      ctx.session.params = {
+        ...params(),
+        processing: true,
+      }
       setCallback('watermark_scale_medium', 100)
 
       await handler.events.callback_query!(ctx)
@@ -1211,7 +1330,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should enforce the limit against the downloaded photo size', async () => {
-      prepareProcessing([{ id: 'base-1' }])
+      prepareProcessing([
+        { id: 'base-1' },
+      ])
       vi.mocked(fs.stat).mockResolvedValueOnce({ size: 20 * 1024 * 1024 } as any)
       setCallback('watermark_scale_medium', 100)
 
@@ -1223,7 +1344,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should not distort a mark too tall to fit within the height cap', async () => {
-      prepareProcessing([{ id: 'base-1', width: 1000, height: 800 }])
+      prepareProcessing([
+        { id: 'base-1', width: 1000, height: 800 },
+      ])
       metadata().set('/tmp/mark.png', {
         width: 1,
         height: 100000,
@@ -1242,7 +1365,9 @@ describe(WatermarkHandler.name, () => {
     })
 
     it('should reject a base image shorter than the minimum watermark height cap', async () => {
-      prepareProcessing([{ id: 'base-1', width: 10, height: 3 }])
+      prepareProcessing([
+        { id: 'base-1', width: 10, height: 3 },
+      ])
       metadata().set('/tmp/mark.png', {
         width: 2,
         height: 1,

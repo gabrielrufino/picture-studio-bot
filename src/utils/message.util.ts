@@ -30,7 +30,9 @@ export function splitMessage(text: string, maxLength = 4000): string[] {
       continue
     }
 
-    const addedLength = currentChunk ? line.length + 1 : line.length
+    const addedLength = currentChunk
+      ? line.length + 1
+      : line.length
     if (currentChunk.length + addedLength > maxLength) {
       chunks.push(currentChunk)
       currentChunk = line

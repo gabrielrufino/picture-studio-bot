@@ -18,7 +18,13 @@ export class ConfigurationRepository extends BaseRepository<ConfigurationEntity>
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['_id', 'pro_price', 'maintenance_mode', 'created_at', 'updated_at'],
+          required: [
+            '_id',
+            'pro_price',
+            'maintenance_mode',
+            'created_at',
+            'updated_at',
+          ],
           properties: {
             _id: {
               bsonType: 'string',

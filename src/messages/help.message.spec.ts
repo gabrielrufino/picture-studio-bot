@@ -8,7 +8,9 @@ describe(HelpMessage.name, () => {
     { command: 'compress', description: 'Compress an image' },
   ] as any
 
-  const ctx = { t: (key: string) => key } as any
+  const ctx = {
+    t: (key: string) => key,
+  } as any
 
   beforeEach(() => {
     ;(HelpMessage as any).cache = new WeakMap()
@@ -82,8 +84,14 @@ describe(HelpMessage.name, () => {
 
   describe('caching', () => {
     it('should return the cached result for the same language and handlers', () => {
-      const ctx1 = { session: { language: 'en' }, t: (key: string) => key } as any
-      const ctx2 = { session: { language: 'en' }, t: (key: string) => key } as any
+      const ctx1 = {
+        session: { language: 'en' },
+        t: (key: string) => key,
+      } as any
+      const ctx2 = {
+        session: { language: 'en' },
+        t: (key: string) => key,
+      } as any
 
       const result1 = new HelpMessage(mockHandlers, ctx1).build()
       const result2 = new HelpMessage(mockHandlers, ctx2).build()
@@ -92,8 +100,14 @@ describe(HelpMessage.name, () => {
     })
 
     it('should return different results for different languages', () => {
-      const ctxEn = { session: { language: 'en' }, t: (key: string) => `${key}_en` } as any
-      const ctxPt = { session: { language: 'pt' }, t: (key: string) => `${key}_pt` } as any
+      const ctxEn = {
+        session: { language: 'en' },
+        t: (key: string) => `${key}_en`,
+      } as any
+      const ctxPt = {
+        session: { language: 'pt' },
+        t: (key: string) => `${key}_pt`,
+      } as any
 
       const resultEn = new HelpMessage(mockHandlers, ctxEn).build()
       const resultPt = new HelpMessage(mockHandlers, ctxPt).build()
@@ -107,7 +121,10 @@ describe(HelpMessage.name, () => {
       const otherHandlers = [
         { command: 'compress', description: 'Compress an image' },
       ] as any
-      const ctxEn = { session: { language: 'en' }, t: (key: string) => key } as any
+      const ctxEn = {
+        session: { language: 'en' },
+        t: (key: string) => key,
+      } as any
 
       const result1 = new HelpMessage(mockHandlers, ctxEn).build()
       const result2 = new HelpMessage(otherHandlers, ctxEn).build()
@@ -116,8 +133,14 @@ describe(HelpMessage.name, () => {
     })
 
     it('should fallback to en when session language is undefined', () => {
-      const ctxNoLang = { session: { language: undefined }, t: (key: string) => key } as any
-      const ctxEn = { session: { language: 'en' }, t: (key: string) => key } as any
+      const ctxNoLang = {
+        session: { language: undefined },
+        t: (key: string) => key,
+      } as any
+      const ctxEn = {
+        session: { language: 'en' },
+        t: (key: string) => key,
+      } as any
 
       const result1 = new HelpMessage(mockHandlers, ctxNoLang).build()
       const result2 = new HelpMessage(mockHandlers, ctxEn).build()
@@ -127,7 +150,10 @@ describe(HelpMessage.name, () => {
 
     it('should not call ctx.t again when returning cached result', () => {
       const t = vi.fn((key: string) => key)
-      const ctx1 = { session: { language: 'en' }, t } as any
+      const ctx1 = {
+        session: { language: 'en' },
+        t,
+      } as any
 
       new HelpMessage(mockHandlers, ctx1).build()
       const callCountAfterFirst = t.mock.calls.length
@@ -142,8 +168,16 @@ describe(HelpMessage.name, () => {
         { command: 'pro', description: 'Get PRO access' },
       ] as any
 
-      const freeCtx = { session: { language: 'en' }, user: { plan_type: 'free' }, t: (key: string) => key } as any
-      const proCtx = { session: { language: 'en' }, user: { plan_type: 'pro' }, t: (key: string) => key } as any
+      const freeCtx = {
+        session: { language: 'en' },
+        user: { plan_type: 'free' },
+        t: (key: string) => key,
+      } as any
+      const proCtx = {
+        session: { language: 'en' },
+        user: { plan_type: 'pro' },
+        t: (key: string) => key,
+      } as any
 
       const freeResult = new HelpMessage(proHandlers, freeCtx).build()
       const proResult = new HelpMessage(proHandlers, proCtx).build()

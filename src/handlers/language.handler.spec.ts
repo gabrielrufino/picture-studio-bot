@@ -119,7 +119,11 @@ describe(LanguageHandler.name, () => {
         callbackQuery: { data: LanguageEnum.Portuguese },
         from: { id: 12345 },
         user: null,
-        session: { language: LanguageEnum.English, command: CommandEnum.Language, params: { foo: 'bar' } },
+        session: {
+          language: LanguageEnum.English,
+          command: CommandEnum.Language,
+          params: { foo: 'bar' },
+        },
         answerCallbackQuery: vi.fn(),
         editMessageText: vi.fn(),
       } as unknown as CustomContext

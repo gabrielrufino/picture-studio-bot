@@ -33,5 +33,8 @@ export async function connectToTestDatabase(name: string): Promise<TestDatabase>
     throw error
   }
 
-  return { client, database: client.db(databaseName) }
+  return {
+    client,
+    database: client.db(databaseName),
+  }
 }

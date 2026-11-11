@@ -11,7 +11,13 @@ export class PaymentRepository extends BaseRepository<PaymentEntity> {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['user_id', 'amount', 'currency', 'created_at', 'updated_at'],
+          required: [
+            'user_id',
+            'amount',
+            'currency',
+            'created_at',
+            'updated_at',
+          ],
           properties: {
             user_id: {
               bsonType: 'objectId',

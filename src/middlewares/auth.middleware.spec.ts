@@ -14,7 +14,12 @@ describe(authMiddleware.name, () => {
 
   beforeEach(() => {
     next = vi.fn()
-    ctx = { t: (key: string) => key, from: { id: 12345 }, reply: vi.fn(), user: undefined }
+    ctx = {
+      t: (key: string) => key,
+      from: { id: 12345 },
+      reply: vi.fn(),
+      user: undefined,
+    }
     vi.clearAllMocks()
   })
 

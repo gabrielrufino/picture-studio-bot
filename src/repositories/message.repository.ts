@@ -10,7 +10,12 @@ export class MessageRepository extends BaseRepository<MessageEntity> {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['telegram_user', 'text', 'created_at', 'updated_at'],
+          required: [
+            'telegram_user',
+            'text',
+            'created_at',
+            'updated_at',
+          ],
           properties: {
             telegram_user: {
               bsonType: 'object',

@@ -13,7 +13,12 @@ export class UserRepository extends BaseRepository<UserEntity> {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['telegram_user', 'is_blocked', 'created_at', 'updated_at'],
+          required: [
+            'telegram_user',
+            'is_blocked',
+            'created_at',
+            'updated_at',
+          ],
           properties: {
             telegram_user: {
               bsonType: 'object',
@@ -57,7 +62,9 @@ export class UserRepository extends BaseRepository<UserEntity> {
   @EnsureInitialized
   public async findByTelegramId(telegramId: number): Promise<UserEntity | null> {
     const result = await this.collection.findOne({ 'telegram_user.id': telegramId })
-    return result ? new UserEntity(result as any) : null
+    return result
+      ? new UserEntity(result as any)
+      : null
   }
 
   @EnsureInitialized
@@ -70,7 +77,9 @@ export class UserRepository extends BaseRepository<UserEntity> {
       is_blocked: { $ne: true },
       is_bot_blocked: { $ne: true },
       $or: [
-        { last_usage_date: { $lt: endWindowStr, $ne: null } },
+        {
+          last_usage_date: { $lt: endWindowStr, $ne: null },
+        },
         {
           last_usage_date: null,
           created_at: { $lt: endWindow },
@@ -91,15 +100,22 @@ export class UserRepository extends BaseRepository<UserEntity> {
   public async incrementUsage(telegramId: number, limit?: number): Promise<UserEntity | null> {
     const today = new Date().toISOString().split('T')[0]
 
-    const filter: any = { 'telegram_user.id': telegramId, 'is_blocked': { $ne: true } }
+    const filter: any = {
+      'telegram_user.id': telegramId,
+      'is_blocked': { $ne: true },
+    }
 
     if (limit !== undefined) {
       filter.$or = [
-        { last_usage_date: { $ne: today } },
+        {
+          last_usage_date: { $ne: today },
+        },
         {
           $and: [
             { last_usage_date: today },
-            { daily_usage_count: { $lt: limit } },
+            {
+              daily_usage_count: { $lt: limit },
+            },
           ],
         },
       ]
@@ -112,9 +128,13 @@ export class UserRepository extends BaseRepository<UserEntity> {
           $set: {
             daily_usage_count: {
               $cond: {
-                if: { $ne: ['$last_usage_date', today] },
+                if: {
+                  $ne: ['$last_usage_date', today],
+                },
                 then: 1,
-                else: { $add: ['$daily_usage_count', 1] },
+                else: {
+                  $add: ['$daily_usage_count', 1],
+                },
               },
             },
             last_usage_date: today,
@@ -125,7 +145,9 @@ export class UserRepository extends BaseRepository<UserEntity> {
       { returnDocument: 'after' },
     )
 
-    return result ? new UserEntity(result as any) : null
+    return result
+      ? new UserEntity(result as any)
+      : null
   }
 
   @EnsureInitialized
@@ -143,11 +165,15 @@ export class UserRepository extends BaseRepository<UserEntity> {
       filter,
       {
         $inc: { daily_usage_count: -1 },
-        $set: { updated_at: new Date() },
+        $set: {
+          updated_at: new Date(),
+        },
       },
       { returnDocument: 'after' },
     )
 
-    return result ? new UserEntity(result as any) : null
+    return result
+      ? new UserEntity(result as any)
+      : null
   }
 }

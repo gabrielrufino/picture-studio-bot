@@ -73,11 +73,38 @@ describe(UserRepository.name, () => {
       const db = database
       const collection = db.collection('users')
 
-      await expect(collection.insertOne({ telegram_user: { id: 1 }, is_blocked: 'string', created_at: new Date(), updated_at: new Date() })).rejects.toThrow()
-      await expect(collection.insertOne({ telegram_user: { id: 1 }, is_blocked: false, plan_type: 'invalid', created_at: new Date(), updated_at: new Date() })).rejects.toThrow()
-      await expect(collection.insertOne({ telegram_user: { id: 1 }, is_blocked: false, plan_started_at: 'string', created_at: new Date(), updated_at: new Date() })).rejects.toThrow()
-      await expect(collection.insertOne({ telegram_user: { id: 1 }, is_blocked: false, created_at: 'string', updated_at: new Date() })).rejects.toThrow()
-      await expect(collection.insertOne({ telegram_user: { id: 1 }, is_blocked: false, created_at: new Date(), updated_at: 'string' })).rejects.toThrow()
+      await expect(collection.insertOne({
+        telegram_user: { id: 1 },
+        is_blocked: 'string',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })).rejects.toThrow()
+      await expect(collection.insertOne({
+        telegram_user: { id: 1 },
+        is_blocked: false,
+        plan_type: 'invalid',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })).rejects.toThrow()
+      await expect(collection.insertOne({
+        telegram_user: { id: 1 },
+        is_blocked: false,
+        plan_started_at: 'string',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })).rejects.toThrow()
+      await expect(collection.insertOne({
+        telegram_user: { id: 1 },
+        is_blocked: false,
+        created_at: 'string',
+        updated_at: new Date(),
+      })).rejects.toThrow()
+      await expect(collection.insertOne({
+        telegram_user: { id: 1 },
+        is_blocked: false,
+        created_at: new Date(),
+        updated_at: 'string',
+      })).rejects.toThrow()
     })
 
     it('should create the correct indexes', async () => {

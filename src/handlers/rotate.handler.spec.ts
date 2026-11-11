@@ -54,7 +54,9 @@ describe(RotateHandler.name, () => {
 
     handler = new RotateHandler(userRepository)
     // @ts-expect-error logger is protected
-    handler.logger = { error: vi.fn() } as any
+    handler.logger = {
+      error: vi.fn(),
+    } as any
 
     ctx = {
       session: { command: CommandEnum.Rotate, params: null },
@@ -75,7 +77,11 @@ describe(RotateHandler.name, () => {
       getFile: vi.fn().mockResolvedValue({
         download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
       }),
-      message: { photo: [{ file_id: 'photo-id', file_size: 100 }] },
+      message: {
+        photo: [
+          { file_id: 'photo-id', file_size: 100 },
+        ],
+      },
       callbackQuery: { data: 'rotate_90' },
     } as unknown as CustomContext
 
@@ -141,7 +147,10 @@ describe(RotateHandler.name, () => {
       expect(ctx.answerCallbackQuery).toHaveBeenCalled()
       expect(ctx.editMessageText).toHaveBeenCalledWith('rotate_rotating')
       expect(ctx.replyWithPhoto).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'rotated.jpg', path: expect.stringMatching(/rotate-[a-f0-9-]+\.jpg$/) }),
+        expect.objectContaining({
+          name: 'rotated.jpg',
+          path: expect.stringMatching(/rotate-[a-f0-9-]+\.jpg$/),
+        }),
         { caption: 'rotate_success' },
       )
 
@@ -210,7 +219,10 @@ describe(RotateHandler.name, () => {
 
       expect((handler as any).logger.error).toHaveBeenCalledWith({ error: err1, path: '/tmp/input.jpg' }, 'Failed to remove input file.')
       expect((handler as any).logger.error).toHaveBeenCalledWith(
-        { error: err2, path: expect.stringMatching(/rotate-[a-f0-9-]+\.jpg$/) },
+        {
+          error: err2,
+          path: expect.stringMatching(/rotate-[a-f0-9-]+\.jpg$/),
+        },
         'Failed to remove output file.',
       )
     })

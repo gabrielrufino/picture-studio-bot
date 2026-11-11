@@ -44,7 +44,9 @@ bot.use(
       command: null,
       params: null,
     }),
-    storage: new MongoDBAdapter({ collection: database.collection<ISession>('sessions') as any }),
+    storage: new MongoDBAdapter({
+      collection: database.collection<ISession>('sessions') as any,
+    }),
     getSessionKey,
   }),
 )

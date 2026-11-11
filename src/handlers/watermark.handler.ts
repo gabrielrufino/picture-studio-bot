@@ -241,7 +241,9 @@ export class WatermarkHandler extends BaseHandler {
     ctx.session.params = params
 
     await ctx.reply(
-      formatString(ctx.t('watermark_send_bases'), { limit: String(this.getPhotoLimit(ctx)) }),
+      formatString(ctx.t('watermark_send_bases'), {
+        limit: String(this.getPhotoLimit(ctx)),
+      }),
     )
   }
 
@@ -280,7 +282,9 @@ export class WatermarkHandler extends BaseHandler {
   }
 
   private getPhotoLimit(ctx: CustomContext): number {
-    const plan = ctx.user?.plan_type === PlanTypeEnum.Pro ? PlanTypeEnum.Pro : PlanTypeEnum.Free
+    const plan = ctx.user?.plan_type === PlanTypeEnum.Pro
+      ? PlanTypeEnum.Pro
+      : PlanTypeEnum.Free
     return PHOTOS_PER_OPERATION_LIMITS[plan]
   }
 
@@ -332,7 +336,9 @@ export class WatermarkHandler extends BaseHandler {
 
   private positionsKeyboard(ctx: CustomContext, positions: WatermarkCorner[]): InlineKeyboard {
     const selected = new Set(positions)
-    const label = (corner: WatermarkCorner) => selected.has(corner) ? '✅' : '⬜'
+    const label = (corner: WatermarkCorner) => selected.has(corner)
+      ? '✅'
+      : '⬜'
 
     return new InlineKeyboard()
       .text(`${label('top-left')} ${ctx.t('watermark_position_top_left')}`, 'watermark_toggle_tl')
@@ -406,7 +412,9 @@ export class WatermarkHandler extends BaseHandler {
       ? 'watermark_photo_limit_reached_pro'
       : 'watermark_photo_limit_reached_free'
 
-    return formatString(ctx.t(key), { limit: String(limit) })
+    return formatString(ctx.t(key), {
+      limit: String(limit),
+    })
   }
 
   private async ready(ctx: CustomContext): Promise<void> {
@@ -441,7 +449,9 @@ export class WatermarkHandler extends BaseHandler {
       }
       else {
         await ctx.reply(
-          formatString(ctx.t('watermark_send_bases'), { limit: String(limit) }),
+          formatString(ctx.t('watermark_send_bases'), {
+            limit: String(limit),
+          }),
         )
       }
       return
@@ -641,7 +651,9 @@ export class WatermarkHandler extends BaseHandler {
     await ctx.answerCallbackQuery()
     await this.editProgress(
       ctx,
-      formatString(ctx.t('watermark_processing'), { total: String(params.base_file_ids.length) }),
+      formatString(ctx.t('watermark_processing'), {
+        total: String(params.base_file_ids.length),
+      }),
     )
 
     await this.processBatch(ctx, params)
@@ -865,7 +877,9 @@ export class WatermarkHandler extends BaseHandler {
     const baseWidth = metadata.autoOrient?.width ?? metadata.width
     const baseHeight = metadata.autoOrient?.height ?? metadata.height
 
-    const ratio = scale === 'auto' ? AUTO_SCALE_RATIO : SCALE_RATIOS[scale]
+    const ratio = scale === 'auto'
+      ? AUTO_SCALE_RATIO
+      : SCALE_RATIOS[scale]
     const maxByHeight = Math.floor((baseHeight * MAX_HEIGHT_RATIO) * (markWidth / markHeight))
 
     if (maxByHeight < 1) {
@@ -902,8 +916,12 @@ export class WatermarkHandler extends BaseHandler {
 
       return {
         input: resizedMark,
-        left: isRight ? baseWidth - targetWidth - margin : margin,
-        top: isBottom ? baseHeight - targetHeight - margin : margin,
+        left: isRight
+          ? baseWidth - targetWidth - margin
+          : margin,
+        top: isBottom
+          ? baseHeight - targetHeight - margin
+          : margin,
       }
     })
 
