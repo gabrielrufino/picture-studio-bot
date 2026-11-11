@@ -9,6 +9,8 @@ import { ImageFetchError, ImageInvalidUrlError, ImageNotImageError, ImageSendErr
 import { ImageDownloaderService } from '@/services/image-downloader.service'
 import { BaseHandler } from './base.handler'
 
+const CLOSING_TO_OPENING: Record<string, string> = { ')': '(', ']': '[', '}': '{' }
+
 function imageExtension(format: string): string {
   switch (format.toLowerCase()) {
     case 'jpeg': return '.jpg'
@@ -84,7 +86,7 @@ export class DownloadHandler extends BaseHandler {
           return
         }
 
-        await this.runWithUsage(ctx, this.userRepository, async () => {
+        await this.runWithUsage(ctx, this.userRepository, async (markDelivered) => {
           const info = await this.downloader.downloadAndAnalyze(url, maxFileSize(ctx))
           const inputFile = new InputFile(info.buffer, `download-image${imageExtension(info.format)}`)
           const caption = this.buildCaption(ctx, info)
@@ -96,6 +98,7 @@ export class DownloadHandler extends BaseHandler {
             this.logger.error(error)
             throw new ImageSendError()
           }
+          markDelivered()
         })
 
         await this.resetSession(ctx)
@@ -138,16 +141,22 @@ export class DownloadHandler extends BaseHandler {
     await ctx.reply(ctx.t('download_prompt'))
   }
 
-  /** Extract the first http(s) URL from text, dropping trailing punctuation and unbalanced closing parentheses. */
+  /** Extract the first http(s) URL from text, dropping trailing punctuation and unbalanced closing brackets. */
   private extractUrl(text: string): string | null {
-    const match = text.match(/https?:\/\/[^\s<>"'[\]{}]+/i)
+    const match = text.match(/https?:\/\/[^\s<>"']+/i)
     if (!match) {
       return null
     }
 
-    let url = match[0].replace(/[.,;:!?]+$/, '')
-    while (url.endsWith(')') && url.split(')').length > url.split('(').length) {
-      url = url.slice(0, -1)
+    let url = match[0]
+    while (url.length > 0) {
+      const last = url.at(-1)!
+      const opening = CLOSING_TO_OPENING[last]
+      if (/[.,;:!?]/.test(last) || (opening && url.split(last).length > url.split(opening).length)) {
+        url = url.slice(0, -1)
+        continue
+      }
+      break
     }
     return url
   }

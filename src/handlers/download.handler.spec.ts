@@ -399,9 +399,27 @@ describe(DownloadHandler.name, () => {
       expect(ctx.session.command).toBeNull()
     })
 
-    it('should stop URLs at square and curly brackets', async () => {
+    it('should keep square and curly brackets inside the URL', async () => {
       ctx.session.command = CommandEnum.Download
-      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/image.jpg}' } as any)
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/img?a[]=1&b={x}' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/img?a[]=1&b={x}', MAX_FILE_SIZE)
+    })
+
+    it('should strip unbalanced closing brackets from the URL', async () => {
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '[https://example.com/image.jpg]}' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/image.jpg', MAX_FILE_SIZE)
+    })
+
+    it('should stop URLs at quotes and angle brackets', async () => {
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: '<https://example.com/image.jpg>' } as any)
 
       await handler.events.message!(ctx)
 

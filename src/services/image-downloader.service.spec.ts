@@ -174,6 +174,24 @@ describe(ImageDownloaderService.name, () => {
       await expect(service.downloadAndAnalyze('')).rejects.toThrow(ImageInvalidUrlError)
     })
 
+    it('should throw ImageInvalidUrlError when a redirect target uses a non-http scheme', async () => {
+      const fetchMock = vi.fn().mockResolvedValueOnce({
+        status: 302,
+        headers: {
+          get: (k: string) => k === 'location'
+            ? 'ftp://example.com/img.jpg'
+            : null,
+        },
+        body: {
+          cancel: vi.fn().mockResolvedValue(undefined),
+        },
+      })
+      vi.stubGlobal('fetch', fetchMock)
+
+      await expect(service.downloadAndAnalyze('https://example.com/img.jpg')).rejects.toThrow(ImageInvalidUrlError)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
     it('should throw ImageSsrfBlockError when redirect target is private IP', async () => {
       const originalFetch = globalThis.fetch
       let callCount = 0

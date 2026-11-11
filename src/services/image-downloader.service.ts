@@ -204,6 +204,9 @@ export class ImageDownloaderService {
 
       redirects++
       currentUrl = new URL(location, currentUrl).href
+      if (!this.isValidUrl(currentUrl)) {
+        throw new ImageInvalidUrlError()
+      }
     }
   }
 
