@@ -2,8 +2,10 @@ import type { UserRepository } from '@/repositories/user.repository'
 import type { ImageInfo } from '@/services/image-downloader.service'
 import type { CustomContext } from '@/types/custom-context.type'
 import { InputFile } from 'grammy'
+import { MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { CommandEnum } from '@/enums/command.enum'
-import { ImageInvalidUrlError, ImageNotImageError, ImageSendError, ImageSsrfBlockError, ImageTooLargeError, LimitExceededError, UserNotFoundError } from '@/errors'
+import { PlanTypeEnum } from '@/enums/plan-type.enum'
+import { ImageInvalidUrlError, ImageNotImageError, ImageSendError, ImageSsrfBlockError, ImageTooLargeError, UserNotFoundError } from '@/errors'
 import { ImageDownloaderService } from '@/services/image-downloader.service'
 import { BaseHandler } from './base.handler'
 
@@ -34,12 +36,23 @@ function imageExtension(format: string): string {
   }
 }
 
-function formatChannels(channels?: number): string {
+function maxFileSize(ctx: CustomContext): number {
+  if (ctx.user?.plan_type === PlanTypeEnum.Pro) {
+    return MAX_PRO_FILE_SIZE
+  }
+  return MAX_FILE_SIZE
+}
+
+function formatChannels(channels?: number, colorSpace?: string): string {
   switch (channels) {
     case 1: return 'Grayscale'
-    case 2: return 'CMYK + Alpha'
+    case 2: return 'Grayscale + Alpha'
     case 3: return 'RGB'
-    case 4: return 'RGBA'
+    case 4:
+      if (colorSpace === 'cmyk') {
+        return 'CMYK'
+      }
+      return 'RGBA'
     default: return `${channels ?? '—'} channels`
   }
 }
@@ -87,8 +100,7 @@ export class DownloadHandler extends BaseHandler {
         }
 
         await this.runWithUsage(ctx, this.userRepository, async () => {
-          const info = await this.downloader.downloadAndAnalyze(url)
-          await this.checkLimits(ctx, { fileSize: info.sizeBytes })
+          const info = await this.downloader.downloadAndAnalyze(url, maxFileSize(ctx))
           const inputFile = new InputFile(info.buffer, `download-image${imageExtension(info.format)}`)
           const options = {
             caption: this.buildCaption(ctx, info),
@@ -114,10 +126,7 @@ export class DownloadHandler extends BaseHandler {
         await this.resetSession(ctx)
       }
       catch (error) {
-        if (error instanceof LimitExceededError) {
-          // checkLimits already notified the user
-        }
-        else if (error instanceof ImageNotImageError) {
+        if (error instanceof ImageNotImageError) {
           await ctx.reply(ctx.t('download_not_image'))
         }
         else if (error instanceof ImageSendError) {
@@ -127,7 +136,7 @@ export class DownloadHandler extends BaseHandler {
           await ctx.reply(ctx.t('download_ssrf_blocked'))
         }
         else if (error instanceof ImageTooLargeError) {
-          await ctx.reply(ctx.t('download_size_exceeded'))
+          await this.notifyLimitExceeded(ctx)
         }
         else if (error instanceof ImageInvalidUrlError) {
           await ctx.reply(ctx.t('download_invalid_url'))
@@ -171,7 +180,7 @@ export class DownloadHandler extends BaseHandler {
     parts.push(`🎨 ${info.format}`)
 
     if (info.channels) {
-      parts.push(`📦 ${formatChannels(info.channels)}`)
+      parts.push(`📦 ${formatChannels(info.channels, info.colorSpace)}`)
     }
 
     parts.push(`💾 ${formatSize(info.sizeBytes)}`)

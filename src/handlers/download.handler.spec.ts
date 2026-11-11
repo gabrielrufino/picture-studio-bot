@@ -4,9 +4,10 @@ import type { CustomContext } from '@/types/custom-context.type'
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MAX_FILE_SIZE, MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { CommandEnum } from '@/enums/command.enum'
 import { PlanTypeEnum } from '@/enums/plan-type.enum'
-import { ImageNotImageError } from '@/errors'
+import { ImageNotImageError, ImageTooLargeError } from '@/errors'
 import { DownloadHandler } from './download.handler'
 
 vi.mock('node:fs/promises', () => ({
@@ -172,7 +173,7 @@ describe(DownloadHandler.name, () => {
 
       await handler.events.message!(ctx)
 
-      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/image.png')
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/image.png', MAX_FILE_SIZE)
       expect(ctx.replyWithPhoto).toHaveBeenCalled()
     })
 
@@ -248,14 +249,7 @@ describe(DownloadHandler.name, () => {
     })
 
     it('should reject files above the free plan size limit', async () => {
-      mockDownloadAndAnalyze.mockResolvedValueOnce({
-        format: 'JPEG',
-        width: 1920,
-        height: 1080,
-        channels: 3,
-        sizeBytes: 11 * 1024 * 1024,
-        buffer: Buffer.from('big-image'),
-      })
+      mockDownloadAndAnalyze.mockRejectedValueOnce(new ImageTooLargeError())
 
       ctx.session.command = CommandEnum.Download
       ctx.replyWithDocument = vi.fn().mockResolvedValue(undefined) as any
@@ -263,6 +257,7 @@ describe(DownloadHandler.name, () => {
 
       await handler.events.message!(ctx)
 
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/big.jpg', MAX_FILE_SIZE)
       expect(ctx.reply).toHaveBeenCalledWith('free_limit_reached')
       expect(ctx.reply).not.toHaveBeenCalledWith('download_fetch_failed')
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled()
@@ -288,8 +283,50 @@ describe(DownloadHandler.name, () => {
 
       await handler.events.message!(ctx)
 
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/big.jpg', MAX_PRO_FILE_SIZE)
       expect(ctx.replyWithDocument).toHaveBeenCalledOnce()
       expect(userRepository.decrementUsage).not.toHaveBeenCalled()
+    })
+
+    it('should describe two-channel images as grayscale with alpha', async () => {
+      mockDownloadAndAnalyze.mockResolvedValueOnce({
+        format: 'PNG',
+        width: 100,
+        height: 100,
+        channels: 2,
+        sizeBytes: 1024,
+        buffer: Buffer.from('gray-alpha'),
+      })
+
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/ga.png' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        caption: expect.stringContaining('Grayscale + Alpha'),
+      }))
+    })
+
+    it('should describe four-channel CMYK images as CMYK', async () => {
+      mockDownloadAndAnalyze.mockResolvedValueOnce({
+        format: 'JPEG',
+        width: 100,
+        height: 100,
+        channels: 4,
+        colorSpace: 'cmyk',
+        sizeBytes: 1024,
+        buffer: Buffer.from('cmyk'),
+      })
+
+      ctx.session.command = CommandEnum.Download
+      vi.spyOn(ctx, 'message', 'get').mockReturnValue({ text: 'https://example.com/cmyk.jpg' } as any)
+
+      await handler.events.message!(ctx)
+
+      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        caption: expect.stringContaining('CMYK'),
+      }))
     })
 
     it('should fall back to sending as a document when photo sending fails', async () => {
@@ -312,7 +349,7 @@ describe(DownloadHandler.name, () => {
 
       await handler.events.message!(ctx)
 
-      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/image.jpg')
+      expect(mockDownloadAndAnalyze).toHaveBeenCalledWith('https://example.com/image.jpg', MAX_FILE_SIZE)
     })
   })
 })

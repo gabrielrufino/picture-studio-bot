@@ -5,6 +5,7 @@ import dns from 'node:dns/promises'
 import ipaddr from 'ipaddr.js'
 import sharp from 'sharp'
 import { Agent, fetch } from 'undici'
+import { MAX_PRO_FILE_SIZE } from '@/config/constants'
 import { ImageFetchError, ImageInvalidUrlError, ImageNotImageError, ImageSsrfBlockError, ImageTooLargeError, ImageTooManyRedirectsError } from '@/errors'
 
 export interface ImageInfo {
@@ -12,6 +13,7 @@ export interface ImageInfo {
   width?: number
   height?: number
   channels?: number
+  colorSpace?: string
   sizeBytes: number
 }
 
@@ -64,7 +66,6 @@ const IMAGE_SIGNATURES: ReadonlyArray<{ offset: number, sig: readonly number[] }
 
 const REDIRECT_STATUSES = [301, 302, 303, 307, 308]
 const MAX_REDIRECTS = 5
-const MAX_BYTES = 50 * 1024 * 1024
 const FETCH_TIMEOUT_MS = 30_000
 
 export class ImageDownloaderService {
@@ -74,7 +75,7 @@ export class ImageDownloaderService {
     },
   })
 
-  public async downloadAndAnalyze(url: string): Promise<ImageInfo & { buffer: Buffer }> {
+  public async downloadAndAnalyze(url: string, maxBytes = MAX_PRO_FILE_SIZE): Promise<ImageInfo & { buffer: Buffer }> {
     if (!this.isValidUrl(url)) {
       throw new ImageInvalidUrlError()
     }
@@ -83,7 +84,7 @@ export class ImageDownloaderService {
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
     try {
-      const response = await this.fetchWithChecks(url, controller.signal)
+      const response = await this.fetchWithChecks(url, controller.signal, maxBytes)
 
       if (!this.isSupportedContentType(response.headers.get('content-type'))) {
         await response.body?.cancel()
@@ -94,7 +95,7 @@ export class ImageDownloaderService {
         throw new ImageFetchError()
       }
 
-      const buffer = await this.readBody(response.body)
+      const buffer = await this.readBody(response.body, maxBytes)
       this.assertImageSignature(buffer)
 
       const meta = await sharp(buffer).metadata().catch(() => {
@@ -113,6 +114,7 @@ export class ImageDownloaderService {
         width: meta.width,
         height: meta.height,
         channels: meta.channels,
+        colorSpace: meta.space,
         sizeBytes: buffer.byteLength,
         buffer,
       }
@@ -137,13 +139,13 @@ export class ImageDownloaderService {
     return SUPPORTED_MIME_TYPES.has(mimeType)
   }
 
-  private async readBody(body: NonNullable<Response['body']>): Promise<Buffer> {
+  private async readBody(body: NonNullable<Response['body']>, maxBytes: number): Promise<Buffer> {
     const chunks: Uint8Array[] = []
     let total = 0
 
     for await (const chunk of body) {
       total += chunk.byteLength
-      if (total > MAX_BYTES) {
+      if (total > maxBytes) {
         throw new ImageTooLargeError()
       }
       chunks.push(chunk)
@@ -152,7 +154,7 @@ export class ImageDownloaderService {
     return Buffer.concat(chunks)
   }
 
-  private async fetchWithChecks(url: string, signal: AbortSignal): Promise<Response> {
+  private async fetchWithChecks(url: string, signal: AbortSignal, maxBytes: number): Promise<Response> {
     let currentUrl = url
     let redirects = 0
 
@@ -174,7 +176,7 @@ export class ImageDownloaderService {
         }
 
         const contentLength = Number(response.headers.get('content-length'))
-        if (contentLength > MAX_BYTES) {
+        if (contentLength > maxBytes) {
           throw new ImageTooLargeError()
         }
 

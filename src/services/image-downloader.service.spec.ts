@@ -290,6 +290,25 @@ describe(ImageDownloaderService.name, () => {
 
       await expect(service.downloadAndAnalyze('https://example.com/img.jpg')).rejects.toThrow(ImageTooLargeError)
     })
+
+    it('should enforce the provided max bytes on streamed bodies', async () => {
+      const tenMegabytes = 10 * 1024 * 1024
+      vi.stubGlobal('fetch', createMockFetch(200, { 'content-type': 'image/jpeg' }, [
+        Buffer.alloc(tenMegabytes + 1),
+      ]))
+
+      await expect(service.downloadAndAnalyze('https://example.com/img.jpg', tenMegabytes)).rejects.toThrow(ImageTooLargeError)
+    })
+
+    it('should reject a declared content-length above the provided max bytes', async () => {
+      const tenMegabytes = 10 * 1024 * 1024
+      vi.stubGlobal('fetch', createMockFetch(200, {
+        'content-type': 'image/jpeg',
+        'content-length': String(tenMegabytes + 1),
+      }))
+
+      await expect(service.downloadAndAnalyze('https://example.com/img.jpg', tenMegabytes)).rejects.toThrow(ImageTooLargeError)
+    })
   })
 
   describe('extractHostname', () => {
