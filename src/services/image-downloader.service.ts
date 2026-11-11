@@ -143,12 +143,20 @@ export class ImageDownloaderService {
     const chunks: Uint8Array[] = []
     let total = 0
 
-    for await (const chunk of body) {
-      total += chunk.byteLength
-      if (total > maxBytes) {
-        throw new ImageTooLargeError()
+    try {
+      for await (const chunk of body) {
+        total += chunk.byteLength
+        if (total > maxBytes) {
+          throw new ImageTooLargeError()
+        }
+        chunks.push(chunk)
       }
-      chunks.push(chunk)
+    }
+    catch (error) {
+      if (error instanceof ImageTooLargeError) {
+        throw error
+      }
+      throw new ImageFetchError()
     }
 
     return Buffer.concat(chunks)
@@ -228,14 +236,30 @@ export class ImageDownloaderService {
   }
 
   private toFetchError(error: unknown): Error {
-    let current: unknown = error
-    while (current) {
-      if (current instanceof ImageSsrfBlockError) {
-        return current
-      }
-      current = (current as { cause?: unknown }).cause
+    return this.findSsrfBlock(error) ?? new ImageFetchError()
+  }
+
+  private findSsrfBlock(error: unknown): ImageSsrfBlockError | undefined {
+    if (error instanceof ImageSsrfBlockError) {
+      return error
     }
-    return new ImageFetchError()
+    if (typeof error !== 'object' || error === null) {
+      return undefined
+    }
+    const { cause, errors } = error as { cause?: unknown, errors?: unknown }
+    const candidates = [
+      cause,
+      ...(Array.isArray(errors)
+        ? errors
+        : []),
+    ]
+    for (const candidate of candidates) {
+      const found = this.findSsrfBlock(candidate)
+      if (found) {
+        return found
+      }
+    }
+    return undefined
   }
 
   private extractHostname(url: string): string {

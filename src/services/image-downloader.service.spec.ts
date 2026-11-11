@@ -256,6 +256,37 @@ describe(ImageDownloaderService.name, () => {
       await expect(service.downloadAndAnalyze('https://internal.example.com/img.jpg')).rejects.toThrow(ImageSsrfBlockError)
     })
 
+    it('should map a blocked lookup aggregated across address families to ImageSsrfBlockError', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed', {
+        cause: new AggregateError([
+          new ImageSsrfBlockError(),
+          new ImageSsrfBlockError(),
+        ], 'connect failed'),
+      })))
+
+      await expect(service.downloadAndAnalyze('http://localhost/img.jpg')).rejects.toThrow(ImageSsrfBlockError)
+    })
+
+    it('should map a body stream failure to ImageFetchError', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        status: 200,
+        headers: {
+          get: (key: string) => key === 'content-type'
+            ? 'image/jpeg'
+            : null,
+        },
+        body: {
+          cancel: vi.fn().mockResolvedValue(undefined),
+          async* [Symbol.asyncIterator]() {
+            yield JPEG_MAGIC
+            throw new Error('socket reset')
+          },
+        },
+      }))
+
+      await expect(service.downloadAndAnalyze('https://example.com/img.jpg')).rejects.toThrow(ImageFetchError)
+    })
+
     it('should reject when hostname cannot be resolved', async () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed', {
         cause: new Error('ENOTFOUND'),
