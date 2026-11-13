@@ -27,7 +27,7 @@ To add a new command:
 
 ## Environment
 
-- Copy `.env.example` to `.env`: `BOT_TOKEN`, `MONGODB_CONNECTION_STRING`, `NODE_ENV`.
+- Copy `.env.example` to `.env`: `BOT_TOKEN`, `MONGODB_CONNECTION_STRING`, `NODE_ENV`, and optional `ALLOWED_TELEGRAM_IDS` (comma-separated; when set, `authMiddleware` silently ignores every other user, and the re-engagement job is not affected).
 - `src/config/database.ts` throws at import time if `MONGODB_CONNECTION_STRING` is missing; `src/config/bot.ts` needs `BOT_TOKEN` at import time. Importing `src/index.ts` or `config/bot` therefore requires both; importing `repositories` requires only `MONGODB_CONNECTION_STRING`.
 - Vitest does not load `.env`. Tests that touch those modules must mock `@/repositories` / config modules or set env vars themselves. Unit tests need no external Mongo; repository tests use `mongodb-memory-server`.
 - `NODE_ENV=production` switches Pino from pretty output to JSON.

@@ -23,6 +23,7 @@ A Telegram bot for processing and manipulating images.
     ```bash
     cp .env.example .env
     ```
+    Optionally set `ALLOWED_TELEGRAM_IDS` to a comma-separated list of Telegram user IDs. When set, the bot ignores every other user (no reply). Leave it empty to allow everyone.
 4. Start the bot
     ```bash
     pnpm start:dev
