@@ -9,7 +9,14 @@ describe(VersionHandler.name, () => {
 
   beforeEach(() => {
     handler = new VersionHandler()
-    ctx = { t: (key: string) => key, session: { command: CommandEnum.Crop, params: { file_id: 'photo-id' } }, reply: vi.fn() } as unknown as CustomContext
+    ctx = {
+      t: (key: string) => key,
+      session: {
+        command: CommandEnum.Crop,
+        params: { file_id: 'photo-id' },
+      },
+      reply: vi.fn(),
+    } as unknown as CustomContext
   })
 
   it('should have correct command', () => {

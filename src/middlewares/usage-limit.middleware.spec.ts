@@ -22,7 +22,12 @@ describe(usageLimitMiddleware.name, () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2024-01-15T12:00:00.000Z'))
     next = vi.fn()
-    ctx = { t: (key: string) => key, from: { id: 12345 }, reply: vi.fn(), user: undefined }
+    ctx = {
+      t: (key: string) => key,
+      from: { id: 12345 },
+      reply: vi.fn(),
+      user: undefined,
+    }
     handler = {
       hasUsageLimits: true,
     }
@@ -174,7 +179,9 @@ describe(usageLimitMiddleware.name, () => {
     expect(userRepository.updateById).toHaveBeenCalledWith('user-id', {
       plan_type: PlanTypeEnum.Free,
       plan_started_at: null,
-    }, { filter: { plan_started_at: expiredDate } })
+    }, {
+      filter: { plan_started_at: expiredDate },
+    })
     expect(next).toHaveBeenCalled()
     expect(ctx.user.plan_type).toBe(PlanTypeEnum.Free)
   })

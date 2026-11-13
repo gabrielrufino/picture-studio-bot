@@ -53,7 +53,9 @@ describe(ResizeHandler.name, () => {
 
     handler = new ResizeHandler(userRepository)
     // @ts-expect-error logger is protected
-    handler.logger = { error: vi.fn() } as any
+    handler.logger = {
+      error: vi.fn(),
+    } as any
 
     ctx = {
       session: { command: CommandEnum.Resize, params: null },
@@ -74,7 +76,11 @@ describe(ResizeHandler.name, () => {
       getFile: vi.fn().mockResolvedValue({
         download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
       }),
-      message: { photo: [{ file_id: 'photo-id', file_size: 100 }] },
+      message: {
+        photo: [
+          { file_id: 'photo-id', file_size: 100 },
+        ],
+      },
       callbackQuery: { data: 'resize_256_256' },
     } as unknown as CustomContext
 
@@ -143,7 +149,10 @@ describe(ResizeHandler.name, () => {
       expect(ctx.answerCallbackQuery).toHaveBeenCalled()
       expect(ctx.editMessageText).toHaveBeenCalledWith('resize_resizing')
       expect(ctx.replyWithPhoto).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'resized.jpg', path: expect.stringMatching(/resize-[a-f0-9-]+\.jpg$/) }),
+        expect.objectContaining({
+          name: 'resized.jpg',
+          path: expect.stringMatching(/resize-[a-f0-9-]+\.jpg$/),
+        }),
         { caption: 'resize_success' },
       )
 
@@ -197,7 +206,10 @@ describe(ResizeHandler.name, () => {
 
       expect((handler as any).logger.error).toHaveBeenCalledWith({ error: err1, path: '/tmp/input.jpg' }, 'Failed to remove input file.')
       expect((handler as any).logger.error).toHaveBeenCalledWith(
-        { error: err2, path: expect.stringMatching(/resize-[a-f0-9-]+\.jpg$/) },
+        {
+          error: err2,
+          path: expect.stringMatching(/resize-[a-f0-9-]+\.jpg$/),
+        },
         'Failed to remove output file.',
       )
     })

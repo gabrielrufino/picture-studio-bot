@@ -52,7 +52,9 @@ describe(CropHandler.name, () => {
 
     handler = new CropHandler(userRepository)
     // @ts-expect-error logger is protected
-    handler.logger = { error: vi.fn() } as any
+    handler.logger = {
+      error: vi.fn(),
+    } as any
 
     ctx = {
       session: { command: CommandEnum.Crop, params: null },
@@ -61,7 +63,11 @@ describe(CropHandler.name, () => {
       from: { id: 1 },
       reply: vi.fn().mockResolvedValue(undefined),
       replyWithPhoto: vi.fn().mockResolvedValue(undefined),
-      message: { photo: [{ file_id: 'photo-id', file_size: 100 }] },
+      message: {
+        photo: [
+          { file_id: 'photo-id', file_size: 100 },
+        ],
+      },
       api: {
         getFile: vi.fn().mockResolvedValue({
           file_id: 'photo-id',
@@ -153,7 +159,12 @@ describe(CropHandler.name, () => {
 
       await handler.events.message!(ctx)
 
-      expect(sharp().extract).toHaveBeenCalledWith({ width: 800, height: 600, left: 100, top: 100 })
+      expect(sharp().extract).toHaveBeenCalledWith({
+        width: 800,
+        height: 600,
+        left: 100,
+        top: 100,
+      })
     })
 
     it('should keep the session when dimensions do not match', async () => {

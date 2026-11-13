@@ -2,6 +2,7 @@ export enum CommandEnum {
   Compress = 'compress',
   Convert = 'convert',
   Crop = 'crop',
+  Download = 'download',
   Feedback = 'feedback',
   Help = 'help',
   Info = 'info',

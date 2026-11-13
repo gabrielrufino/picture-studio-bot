@@ -36,7 +36,9 @@ export abstract class BaseRepository<T extends Document & { updated_at: Date }> 
 
     if (this.indexes.length > 0) {
       await this.collection.createIndexes(
-        this.indexes.map(index => ({ key: { [index as string]: 1 } })),
+        this.indexes.map(index => ({
+          key: { [index as string]: 1 },
+        })),
       )
     }
 
@@ -66,7 +68,12 @@ export abstract class BaseRepository<T extends Document & { updated_at: Date }> 
     entity.updated_at = new Date()
 
     const baseFilter = { _id: id } as any
-    const filter = options?.filter ? { ...options.filter, ...baseFilter } : baseFilter
+    const filter = options?.filter
+      ? {
+          ...options.filter,
+          ...baseFilter,
+        }
+      : baseFilter
 
     const result = await this.collection.findOneAndUpdate(
       filter,

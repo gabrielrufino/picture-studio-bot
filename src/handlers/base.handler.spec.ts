@@ -55,10 +55,13 @@ describe(BaseHandler.name, () => {
 
   it('should set session command correctly', async () => {
     const handler = new TestHandler()
-    const ctx: any = { t: (key: string) => key, session: {
-      command: null,
-      params: null,
-    } } as CustomContext
+    const ctx: any = {
+      t: (key: string) => key,
+      session: {
+        command: null,
+        params: null,
+      },
+    } as CustomContext
 
     await handler.setSessionCommand(ctx)
 
@@ -67,10 +70,13 @@ describe(BaseHandler.name, () => {
 
   it('should reset session correctly', async () => {
     const handler = new TestHandler()
-    const ctx: any = { t: (key: string) => key, session: {
-      command: CommandEnum.Version,
-      params: { someParam: 'value' },
-    } } as unknown as CustomContext
+    const ctx: any = {
+      t: (key: string) => key,
+      session: {
+        command: CommandEnum.Version,
+        params: { someParam: 'value' },
+      },
+    } as unknown as CustomContext
 
     await handler.resetSession(ctx)
 
@@ -81,10 +87,13 @@ describe(BaseHandler.name, () => {
   describe('removeTemporaryFiles', () => {
     it('should remove temporary file if path exists in params', async () => {
       const handler = new TestHandler()
-      const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Version,
-        params: { path: '/tmp/test-file' },
-      } } as unknown as CustomContext
+      const ctx: any = {
+        t: (key: string) => key,
+        session: {
+          command: CommandEnum.Version,
+          params: { path: '/tmp/test-file' },
+        },
+      } as unknown as CustomContext
 
       const rmSpy = vi.spyOn(fs, 'rm').mockResolvedValue(undefined)
 
@@ -95,10 +104,15 @@ describe(BaseHandler.name, () => {
 
     it('should remove temporary files if paths exist in params', async () => {
       const handler = new TestHandler()
-      const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Version,
-        params: { paths: ['/tmp/file1', '/tmp/file2'] },
-      } } as unknown as CustomContext
+      const ctx: any = {
+        t: (key: string) => key,
+        session: {
+          command: CommandEnum.Version,
+          params: {
+            paths: ['/tmp/file1', '/tmp/file2'],
+          },
+        },
+      } as unknown as CustomContext
 
       const rmSpy = vi.spyOn(fs, 'rm').mockResolvedValue(undefined)
 
@@ -110,10 +124,15 @@ describe(BaseHandler.name, () => {
 
     it('should ignore non-string paths in paths array', async () => {
       const handler = new TestHandler()
-      const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Version,
-        params: { paths: ['/tmp/file1', 123, null] },
-      } } as unknown as CustomContext
+      const ctx: any = {
+        t: (key: string) => key,
+        session: {
+          command: CommandEnum.Version,
+          params: {
+            paths: ['/tmp/file1', 123, null],
+          },
+        },
+      } as unknown as CustomContext
 
       const rmSpy = vi.spyOn(fs, 'rm').mockResolvedValue(undefined)
 
@@ -125,10 +144,13 @@ describe(BaseHandler.name, () => {
 
     it('should catch and log error if fs.rm fails', async () => {
       const handler = new TestHandler()
-      const ctx: any = { t: (key: string) => key, session: {
-        command: CommandEnum.Version,
-        params: { path: '/tmp/test-file' },
-      } } as unknown as CustomContext
+      const ctx: any = {
+        t: (key: string) => key,
+        session: {
+          command: CommandEnum.Version,
+          params: { path: '/tmp/test-file' },
+        },
+      } as unknown as CustomContext
 
       const error = new Error('Permission denied')
       const rmSpy = vi.spyOn(fs, 'rm').mockRejectedValue(error)
@@ -144,14 +166,24 @@ describe(BaseHandler.name, () => {
   describe('validateParams', () => {
     it('should return data if validation succeeds', () => {
       const handler = new TestHandler()
-      const schema = { safeParse: vi.fn().mockReturnValue({ success: true, data: { foo: 'bar' } }) } as any
+      const schema = {
+        safeParse: vi.fn().mockReturnValue({
+          success: true,
+          data: { foo: 'bar' },
+        }),
+      } as any
       const result = (handler as any).validateParams(schema, { foo: 'bar' })
       expect(result).toEqual({ foo: 'bar' })
     })
 
     it('should throw SessionValidationError if validation fails', () => {
       const handler = new TestHandler()
-      const schema = { safeParse: vi.fn().mockReturnValue({ success: false, error: new Error('Validation failed') }) } as any
+      const schema = {
+        safeParse: vi.fn().mockReturnValue({
+          success: false,
+          error: new Error('Validation failed'),
+        }),
+      } as any
       expect(() => (handler as any).validateParams(schema, { foo: 'bar' })).toThrow()
     })
   })

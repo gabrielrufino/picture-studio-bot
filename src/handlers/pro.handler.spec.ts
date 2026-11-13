@@ -22,7 +22,15 @@ describe(ProHandler.name, () => {
     ...overrides,
   } as unknown as UserEntity)
 
-  const createMockContext = (overrides?: any): CustomContext => ({ t: (key: string) => key, from: { id: 12345 }, session: { command: null, params: null }, reply: vi.fn(), replyWithInvoice: vi.fn(), answerPreCheckoutQuery: vi.fn(), ...overrides } as unknown as CustomContext)
+  const createMockContext = (overrides?: any): CustomContext => ({
+    t: (key: string) => key,
+    from: { id: 12345 },
+    session: { command: null, params: null },
+    reply: vi.fn(),
+    replyWithInvoice: vi.fn(),
+    answerPreCheckoutQuery: vi.fn(),
+    ...overrides,
+  } as unknown as CustomContext)
 
   beforeEach(() => {
     userRepository = {
@@ -67,7 +75,9 @@ describe(ProHandler.name, () => {
       vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)
 
       const ctx = createMockContext({
-        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+        t: (key: string) => key === 'subscription_info'
+          ? 'Active since {date}'
+          : key,
       })
 
       await handler.onCommand(ctx)
@@ -81,7 +91,9 @@ describe(ProHandler.name, () => {
       vi.spyOn(userRepository, 'findByTelegramId').mockResolvedValueOnce(existingUser)
 
       const ctx = createMockContext({
-        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+        t: (key: string) => key === 'subscription_info'
+          ? 'Active since {date}'
+          : key,
       })
 
       await handler.onCommand(ctx)
@@ -98,7 +110,10 @@ describe(ProHandler.name, () => {
       vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce({} as any)
 
       const ctx = createMockContext({
-        session: { command: CommandEnum.Pro, params: { file_id: 'photo-id' } },
+        session: {
+          command: CommandEnum.Pro,
+          params: { file_id: 'photo-id' },
+        },
       })
 
       await handler.onCommand(ctx)
@@ -106,7 +121,9 @@ describe(ProHandler.name, () => {
       expect(userRepository.updateById).toHaveBeenCalledWith('user-id', {
         plan_type: PlanTypeEnum.Free,
         plan_started_at: null,
-      }, { filter: { plan_started_at: startDate } })
+      }, {
+        filter: { plan_started_at: startDate },
+      })
       expect(ctx.reply).toHaveBeenCalledWith('pro_expired')
       expect(ctx.replyWithInvoice).not.toHaveBeenCalled()
       expect(ctx.session.command).toBeNull()
@@ -125,7 +142,9 @@ describe(ProHandler.name, () => {
       vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce(null)
 
       const ctx = createMockContext({
-        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+        t: (key: string) => key === 'subscription_info'
+          ? 'Active since {date}'
+          : key,
       })
 
       await handler.onCommand(ctx)
@@ -144,7 +163,9 @@ describe(ProHandler.name, () => {
       vi.spyOn(userRepository, 'updateById').mockResolvedValueOnce(null)
 
       const ctx = createMockContext({
-        t: (key: string) => key === 'subscription_info' ? 'Active since {date}' : key,
+        t: (key: string) => key === 'subscription_info'
+          ? 'Active since {date}'
+          : key,
       })
 
       await handler.onCommand(ctx)
@@ -168,7 +189,9 @@ describe(ProHandler.name, () => {
         'pro_upgrade',
         'picture-studio-pro-subscription',
         CurrencyEnum.XTR,
-        [{ label: 'PRO Subscription', amount: 350 }],
+        [
+          { label: 'PRO Subscription', amount: 350 },
+        ],
         {
           provider_token: '',
         },
@@ -196,7 +219,9 @@ describe(ProHandler.name, () => {
         expect.any(String),
         expect.any(String),
         expect.any(String),
-        [{ label: 'PRO Subscription', amount: 500 }],
+        [
+          { label: 'PRO Subscription', amount: 500 },
+        ],
         expect.any(Object),
       )
     })
@@ -229,7 +254,9 @@ describe(ProHandler.name, () => {
 
         const ctx = createMockContext({
           session: { command: CommandEnum.Pro, params: null },
-          message: { successful_payment: { total_amount: 350, currency: CurrencyEnum.XTR } },
+          message: {
+            successful_payment: { total_amount: 350, currency: CurrencyEnum.XTR },
+          },
         })
 
         await handler.events['message:successful_payment'](ctx)
@@ -257,7 +284,9 @@ describe(ProHandler.name, () => {
 
         const ctx = createMockContext({
           session: { command: CommandEnum.Pro, params: null },
-          message: { successful_payment: { total_amount: 350, currency: CurrencyEnum.XTR } },
+          message: {
+            successful_payment: { total_amount: 350, currency: CurrencyEnum.XTR },
+          },
         })
 
         await handler.events['message:successful_payment'](ctx)

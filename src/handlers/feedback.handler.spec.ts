@@ -17,7 +17,11 @@ describe(FeedbackHandler.name, () => {
 
   describe(FeedbackHandler.prototype.onCommand.name, () => {
     it('should set session command and send reply', async () => {
-      const ctx: any = { t: (key: string) => key, session: { command: null, params: null }, reply: vi.fn().mockResolvedValue(undefined) } as unknown as CustomContext
+      const ctx: any = {
+        t: (key: string) => key,
+        session: { command: null, params: null },
+        reply: vi.fn().mockResolvedValue(undefined),
+      } as unknown as CustomContext
 
       await new FeedbackHandler(feedbackRepositoryMock).onCommand(ctx)
 
@@ -25,7 +29,11 @@ describe(FeedbackHandler.name, () => {
     })
 
     it('should send the correct reply message', async () => {
-      const ctx: any = { t: (key: string) => key, session: { command: null, params: null }, reply: vi.fn().mockResolvedValue(undefined) } as unknown as CustomContext
+      const ctx: any = {
+        t: (key: string) => key,
+        session: { command: null, params: null },
+        reply: vi.fn().mockResolvedValue(undefined),
+      } as unknown as CustomContext
 
       await new FeedbackHandler(feedbackRepositoryMock).onCommand(ctx)
 
@@ -37,7 +45,18 @@ describe(FeedbackHandler.name, () => {
 
   describe('events[\'msg:text\']', () => {
     it('should create feedback and send thank you reply', async () => {
-      const ctx: any = { t: (key: string) => key, session: { command: CommandEnum.Feedback, params: null }, from: { id: 123, first_name: 'John', is_bot: false, language_code: 'en' }, message: { text: 'Great service!' }, reply: vi.fn().mockResolvedValue(undefined) } as unknown as CustomContext
+      const ctx: any = {
+        t: (key: string) => key,
+        session: { command: CommandEnum.Feedback, params: null },
+        from: {
+          id: 123,
+          first_name: 'John',
+          is_bot: false,
+          language_code: 'en',
+        },
+        message: { text: 'Great service!' },
+        reply: vi.fn().mockResolvedValue(undefined),
+      } as unknown as CustomContext
 
       await new FeedbackHandler(feedbackRepositoryMock).events['msg:text'](ctx)
 

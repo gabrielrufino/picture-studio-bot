@@ -108,7 +108,12 @@ export class CropHandler extends BaseHandler {
           const top = Math.floor((metadata.height - cropHeight) / 2)
 
           const buffer = await sharp(inputPath)
-            .extract({ width: cropWidth, height: cropHeight, left, top })
+            .extract({
+              width: cropWidth,
+              height: cropHeight,
+              left,
+              top,
+            })
             .toBuffer()
 
           outputPath = join(os.tmpdir(), `crop-${crypto.randomUUID()}.jpg`)

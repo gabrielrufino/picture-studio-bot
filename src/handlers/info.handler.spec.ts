@@ -59,11 +59,15 @@ describe(InfoHandler.name, () => {
 
     handler = new InfoHandler(userRepository)
     // @ts-expect-error logger is protected
-    handler.logger = { error: vi.fn() } as any
+    handler.logger = {
+      error: vi.fn(),
+    } as any
 
     ctx = {
       session: { command: CommandEnum.Info, params: null },
-      t: vi.fn(key => key === 'info_result' ? INFO_RESULT_TEMPLATE : key),
+      t: vi.fn(key => key === 'info_result'
+        ? INFO_RESULT_TEMPLATE
+        : key),
       user: { id: 1 },
       from: { id: 1 },
       reply: vi.fn().mockResolvedValue(undefined),
@@ -75,7 +79,11 @@ describe(InfoHandler.name, () => {
           download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
         }),
       },
-      message: { photo: [{ file_id: 'photo-id', file_size: 100 }] },
+      message: {
+        photo: [
+          { file_id: 'photo-id', file_size: 100 },
+        ],
+      },
     } as unknown as CustomContext
 
     vi.clearAllMocks()
@@ -181,7 +189,9 @@ describe(InfoHandler.name, () => {
       it('should process image documents and send info result', async () => {
         const docCtx = {
           session: { command: CommandEnum.Info, params: null },
-          t: vi.fn(key => key === 'info_result' ? INFO_RESULT_TEMPLATE : key),
+          t: vi.fn(key => key === 'info_result'
+            ? INFO_RESULT_TEMPLATE
+            : key),
           user: { id: 1 },
           from: { id: 1 },
           reply: vi.fn().mockResolvedValue(undefined),
@@ -193,7 +203,9 @@ describe(InfoHandler.name, () => {
               download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
             }),
           },
-          message: { document: { file_id: 'doc-id', file_size: 200, mime_type: 'image/jpeg' } },
+          message: {
+            document: { file_id: 'doc-id', file_size: 200, mime_type: 'image/jpeg' },
+          },
         } as unknown as CustomContext
 
         await handler.events['msg:document']!(docCtx)
@@ -225,7 +237,9 @@ describe(InfoHandler.name, () => {
               download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
             }),
           },
-          message: { document: { file_id: 'doc-id', file_size: 200, mime_type: 'image/jpeg' } },
+          message: {
+            document: { file_id: 'doc-id', file_size: 200, mime_type: 'image/jpeg' },
+          },
         } as unknown as CustomContext
 
         await handler.events['msg:document']!(docCtx)
@@ -244,7 +258,9 @@ describe(InfoHandler.name, () => {
           reply: vi.fn().mockResolvedValue(undefined),
           replyWithPhoto: vi.fn().mockResolvedValue(undefined),
           api: {},
-          message: { document: { file_id: 'doc-id', file_size: 200, mime_type: 'application/pdf' } },
+          message: {
+            document: { file_id: 'doc-id', file_size: 200, mime_type: 'application/pdf' },
+          },
         } as unknown as CustomContext
 
         await handler.events['msg:document']!(docCtx)

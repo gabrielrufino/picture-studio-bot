@@ -27,9 +27,21 @@ describe('logger', () => {
     testLogger.info({
       BOT_TOKEN: 'secret1',
       nested: { BOT_TOKEN: 'secret2' },
-      deep: { nested: { BOT_TOKEN: 'secret3' } },
-      very: { deep: { nested: { BOT_TOKEN: 'secret4' } } },
-      ultra: { very: { deep: { nested: { BOT_TOKEN: 'secret5' } } } },
+      deep: {
+        nested: { BOT_TOKEN: 'secret3' },
+      },
+      very: {
+        deep: {
+          nested: { BOT_TOKEN: 'secret4' },
+        },
+      },
+      ultra: {
+        very: {
+          deep: {
+            nested: { BOT_TOKEN: 'secret5' },
+          },
+        },
+      },
       token: 'tok1',
       apiKey: 'api1',
       header: { Authorization: 'Bearer x' },

@@ -6,11 +6,31 @@ import { HelpHandler } from './help.handler'
 
 describe(HelpHandler.name, () => {
   const mockHandlers = [
-    { command: 'compress', description: '🗜️ Compress an image', onCommand: vi.fn() },
-    { command: 'convert', description: '🔄 Convert an image format', onCommand: vi.fn() },
-    { command: 'crop', description: '✂️ Crop an image', onCommand: vi.fn() },
-    { command: 'resize', description: '📐 Resize an image', onCommand: vi.fn() },
-    { command: 'rotate', description: '🔄 Rotate an image', onCommand: vi.fn() },
+    {
+      command: 'compress',
+      description: '🗜️ Compress an image',
+      onCommand: vi.fn(),
+    },
+    {
+      command: 'convert',
+      description: '🔄 Convert an image format',
+      onCommand: vi.fn(),
+    },
+    {
+      command: 'crop',
+      description: '✂️ Crop an image',
+      onCommand: vi.fn(),
+    },
+    {
+      command: 'resize',
+      description: '📐 Resize an image',
+      onCommand: vi.fn(),
+    },
+    {
+      command: 'rotate',
+      description: '🔄 Rotate an image',
+      onCommand: vi.fn(),
+    },
   ] as unknown as BaseHandler[]
 
   let handler: HelpHandler
@@ -18,9 +38,19 @@ describe(HelpHandler.name, () => {
 
   beforeEach(() => {
     handler = new HelpHandler(mockHandlers)
-    ctx = { t: (key: string) => key, session: { command: CommandEnum.Crop, params: { file_id: 'photo-id' } }, reply: vi.fn(), answerCallbackQuery: vi.fn(), deleteMessage: vi.fn().mockResolvedValue(undefined), callbackQuery: {
-      data: 'compress',
-    } } as unknown as CustomContext
+    ctx = {
+      t: (key: string) => key,
+      session: {
+        command: CommandEnum.Crop,
+        params: { file_id: 'photo-id' },
+      },
+      reply: vi.fn(),
+      answerCallbackQuery: vi.fn(),
+      deleteMessage: vi.fn().mockResolvedValue(undefined),
+      callbackQuery: {
+        data: 'compress',
+      },
+    } as unknown as CustomContext
   })
 
   it('should have correct command', () => {
@@ -31,7 +61,9 @@ describe(HelpHandler.name, () => {
     it('should reply with a dynamically generated help message', async () => {
       await handler.onCommand(ctx)
 
-      expect(ctx.reply).toHaveBeenCalledWith('help_select_operation', expect.objectContaining({ reply_markup: expect.anything() }))
+      expect(ctx.reply).toHaveBeenCalledWith('help_select_operation', expect.objectContaining({
+        reply_markup: expect.anything(),
+      }))
       expect(ctx.session.command).toBeNull()
       expect(ctx.session.params).toBeNull()
     })

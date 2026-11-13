@@ -7,7 +7,9 @@ describe(chunk.name, () => {
   })
 
   it('should return a single chunk for one item', () => {
-    expect(chunk(['a'], 10)).toEqual([['a']])
+    expect(chunk(['a'], 10)).toEqual([
+      ['a'],
+    ])
   })
 
   it('should return a single chunk when the size matches the input length', () => {

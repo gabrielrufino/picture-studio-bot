@@ -104,5 +104,13 @@
   "watermark_error": "❌ Ocurrió un error al aplicar la marca de agua. Por favor, inténtalo de nuevo más tarde.",
   "watermark_back": "🔙 Volver",
   "watermark_cancel": "❌ Cancelar",
-  "watermark_cancelled": "✅ Operación cancelada."
+  "watermark_cancelled": "✅ Operación cancelada.",
+  "download_prompt": "🔗 Envíame la URL de la imagen que deseas descargar.",
+  "download_success": "¡Imagen descargada con éxito!",
+  "download_invalid_url": "⚠️ Por favor, envía una URL válida (http o https).",
+  "download_ssrf_blocked": "🚫 Acceso bloqueado por política de seguridad.",
+  "download_too_large": "⚠️ La imagen supera el tamaño máximo de archivo de tu plan.",
+  "download_not_image": "⚠️ El recurso descargado no es una imagen válida. Formatos soportados: JPEG, PNG, WebP, GIF, AVIF, TIFF.",
+  "download_fetch_failed": "❌ No se pudo descargar la imagen. Verifica la URL e inténtalo de nuevo.",
+  "download_send_failed": "❌ No se pudo enviar la imagen a Telegram. Inténtalo más tarde."
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { userRepository } from '@/repositories'
 import { authMiddleware } from './auth.middleware'
 
@@ -14,7 +14,12 @@ describe(authMiddleware.name, () => {
 
   beforeEach(() => {
     next = vi.fn()
-    ctx = { t: (key: string) => key, from: { id: 12345 }, reply: vi.fn(), user: undefined }
+    ctx = {
+      t: (key: string) => key,
+      from: { id: 12345 },
+      reply: vi.fn(),
+      user: undefined,
+    }
     vi.clearAllMocks()
   })
 
@@ -67,5 +72,53 @@ describe(authMiddleware.name, () => {
 
     expect(ctx.reply).toHaveBeenCalledWith('access_denied')
     expect(next).not.toHaveBeenCalled()
+  })
+
+  describe('allowed telegram ids', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    it('should call next for any user when the allowlist is not set', async () => {
+      vi.stubEnv('ALLOWED_TELEGRAM_IDS', '')
+      vi.mocked(userRepository.findByTelegramId).mockResolvedValueOnce(null)
+
+      await authMiddleware(ctx, next)
+
+      expect(next).toHaveBeenCalled()
+      expect(ctx.reply).not.toHaveBeenCalled()
+    })
+
+    it('should call next if from.id is in the allowlist', async () => {
+      vi.stubEnv('ALLOWED_TELEGRAM_IDS', '999, 12345 ,888')
+      vi.mocked(userRepository.findByTelegramId).mockResolvedValueOnce(null)
+
+      await authMiddleware(ctx, next)
+
+      expect(next).toHaveBeenCalled()
+      expect(ctx.reply).not.toHaveBeenCalled()
+    })
+
+    it('should stop silently if from.id is not in the allowlist', async () => {
+      vi.stubEnv('ALLOWED_TELEGRAM_IDS', '999')
+
+      await authMiddleware(ctx, next)
+
+      expect(next).not.toHaveBeenCalled()
+      expect(ctx.reply).not.toHaveBeenCalled()
+      expect(userRepository.findByTelegramId).not.toHaveBeenCalled()
+    })
+
+    it('should answer the callback query silently if from.id is not in the allowlist', async () => {
+      vi.stubEnv('ALLOWED_TELEGRAM_IDS', '999')
+      ctx.callbackQuery = { id: 'cb' }
+      ctx.answerCallbackQuery = vi.fn()
+
+      await authMiddleware(ctx, next)
+
+      expect(ctx.answerCallbackQuery).toHaveBeenCalledWith()
+      expect(next).not.toHaveBeenCalled()
+      expect(ctx.reply).not.toHaveBeenCalled()
+    })
   })
 })

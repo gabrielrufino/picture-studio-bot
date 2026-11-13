@@ -11,7 +11,12 @@ export class EventRepository extends BaseRepository<EventEntity> {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['event', 'telegram_user', 'created_at', 'updated_at'],
+          required: [
+            'event',
+            'telegram_user',
+            'created_at',
+            'updated_at',
+          ],
           properties: {
             event: {
               enum: Object.values(EventEnum),

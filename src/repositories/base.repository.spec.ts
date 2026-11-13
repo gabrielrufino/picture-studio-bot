@@ -18,7 +18,12 @@ describe(BaseRepository.name, () => {
       super({
         collectionName: 'test',
         database,
-        validator: { $jsonSchema: { bsonType: 'object', required: ['name'] } },
+        validator: {
+          $jsonSchema: {
+            bsonType: 'object',
+            required: ['name'],
+          },
+        },
         indexes: ['name'],
       })
     }
@@ -29,7 +34,12 @@ describe(BaseRepository.name, () => {
       super({
         collectionName: 'test',
         database,
-        validator: { $jsonSchema: { bsonType: 'object', required: ['name'] } },
+        validator: {
+          $jsonSchema: {
+            bsonType: 'object',
+            required: ['name'],
+          },
+        },
       })
     }
   }
@@ -70,7 +80,10 @@ describe(BaseRepository.name, () => {
     const repo = new TestRepository(db)
     const initSpy = vi.spyOn(repo, 'init')
 
-    await repo.create({ name: 'test', updated_at: new Date() })
+    await repo.create({
+      name: 'test',
+      updated_at: new Date(),
+    })
 
     expect(initSpy).toHaveBeenCalled()
     expect((repo as any).initialized).toBe(true)
@@ -82,7 +95,10 @@ describe(BaseRepository.name, () => {
     await repo.init()
     const initSpy = vi.spyOn(repo, 'init')
 
-    await repo.create({ name: 'test', updated_at: new Date() })
+    await repo.create({
+      name: 'test',
+      updated_at: new Date(),
+    })
 
     expect(initSpy).not.toHaveBeenCalled()
   })
@@ -90,7 +106,10 @@ describe(BaseRepository.name, () => {
   it('should update an entity by id', async () => {
     const db = databaseFor(5)
     const repo = new TestRepository(db)
-    const entity = { name: 'initial', updated_at: new Date(0) }
+    const entity = {
+      name: 'initial',
+      updated_at: new Date(0),
+    }
     const created = await repo.create(entity)
 
     const updated = await repo.updateById((created as any)._id, { name: 'updated' })
@@ -107,8 +126,14 @@ describe(BaseRepository.name, () => {
     const db = databaseFor(6)
     const repo = new TestRepository(db)
     const entities = [
-      { name: 'entity1', updated_at: new Date() },
-      { name: 'entity2', updated_at: new Date() },
+      {
+        name: 'entity1',
+        updated_at: new Date(),
+      },
+      {
+        name: 'entity2',
+        updated_at: new Date(),
+      },
     ]
 
     const created = await repo.insertMany(entities)
@@ -135,7 +160,11 @@ describe(BaseRepository.name, () => {
     await repo.init()
 
     expect(createIndexesSpy).toHaveBeenCalledOnce()
-    expect(createIndexesSpy).toHaveBeenCalledWith([{ key: { name: 1 } }])
+    expect(createIndexesSpy).toHaveBeenCalledWith([
+      {
+        key: { name: 1 },
+      },
+    ])
   })
 
   it('should not call createIndexes when no indexes are defined', async () => {

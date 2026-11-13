@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { UnknownMessage } from './unknown.message'
 
 describe(UnknownMessage.name, () => {
-  const ctx = { t: (key: string) => key } as any
+  const ctx = {
+    t: (key: string) => key,
+  } as any
 
   it('should return a "not understood" message', () => {
     const result = new UnknownMessage(ctx).build()

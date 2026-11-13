@@ -9,6 +9,7 @@ A Telegram bot for processing and manipulating images.
 - ✂️ **Crop** - Crop images to custom dimensions
 - 📐 **Resize** - Resize images to preset dimensions
 - 🔄 **Rotate** - Rotate images by 90°, 180°, or -90°
+- 🔗 **Download** - Download an image from a URL
 - 💧 **Watermark** - Apply a watermark to batches of photos, choosing corners and size
 
 ## Getting started
@@ -22,6 +23,7 @@ A Telegram bot for processing and manipulating images.
     ```bash
     cp .env.example .env
     ```
+    Optionally set `ALLOWED_TELEGRAM_IDS` to a comma-separated list of Telegram user IDs. When set, the bot ignores every other user (no reply). Leave it empty to allow everyone.
 4. Start the bot
     ```bash
     pnpm start:dev
@@ -37,6 +39,7 @@ A Telegram bot for processing and manipulating images.
 - `/info` - Get image info
 - `/resize` - Resize an image
 - `/rotate` - Rotate an image
+- `/download` - Download an image from a URL
 - `/watermark` - Apply a watermark to up to 3 photos (Free) or 100 photos (Pro) per operation
 - `/pro` - Upgrade to Pro
 - `/language` - Change language
@@ -54,7 +57,9 @@ A Telegram bot for processing and manipulating images.
 
 The bot processes up to 150 updates per 10 seconds per user.
 
-Compress, crop, resize, and rotate results are sent as photos. Conversion and watermark results are sent as documents to preserve format and transparency. Watermark batches are sent in albums of up to 10 files.
+Compress, crop, resize, and rotate results are sent as photos. Conversion, watermark, and download results are sent as documents to preserve format and transparency. Watermark batches are sent in albums of up to 10 files.
+
+Downloads (`/download`) use the same per-file size limits as the other commands.
 
 ## License
 

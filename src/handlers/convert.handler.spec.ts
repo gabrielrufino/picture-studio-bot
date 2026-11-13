@@ -53,7 +53,9 @@ describe(ConvertHandler.name, () => {
 
     handler = new ConvertHandler(userRepository)
     // @ts-expect-error logger is protected
-    handler.logger = { error: vi.fn() } as any
+    handler.logger = {
+      error: vi.fn(),
+    } as any
 
     ctx = {
       session: { command: CommandEnum.Convert, params: null },
@@ -74,7 +76,11 @@ describe(ConvertHandler.name, () => {
       getFile: vi.fn().mockResolvedValue({
         download: vi.fn().mockResolvedValue('/tmp/input.jpg'),
       }),
-      message: { photo: [{ file_id: 'photo-id', file_size: 100 }] },
+      message: {
+        photo: [
+          { file_id: 'photo-id', file_size: 100 },
+        ],
+      },
       callbackQuery: { data: 'convert_jpeg' },
     } as unknown as CustomContext
 
@@ -133,7 +139,10 @@ describe(ConvertHandler.name, () => {
       expect(ctx.answerCallbackQuery).toHaveBeenCalled()
       expect(ctx.editMessageText).toHaveBeenCalledWith('convert_converting')
       expect(ctx.replyWithDocument).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'converted.jpg', path: expect.stringMatching(/convert-[a-f0-9-]+\.jpg$/) }),
+        expect.objectContaining({
+          name: 'converted.jpg',
+          path: expect.stringMatching(/convert-[a-f0-9-]+\.jpg$/),
+        }),
         { caption: 'convert_success' },
       )
 
@@ -178,7 +187,10 @@ describe(ConvertHandler.name, () => {
 
       expect((handler as any).logger.error).toHaveBeenCalledWith({ error: err1, path: '/tmp/input.jpg' }, 'Failed to remove input file.')
       expect((handler as any).logger.error).toHaveBeenCalledWith(
-        { error: err2, path: expect.stringMatching(/convert-/) },
+        {
+          error: err2,
+          path: expect.stringMatching(/convert-/),
+        },
         'Failed to remove output file.',
       )
     })

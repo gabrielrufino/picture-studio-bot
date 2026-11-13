@@ -16,9 +16,18 @@ Telegram image-processing bot: TypeScript, grammY, MongoDB, sharp. Single packag
 
 Baseline: lint, typecheck, and the full test suite pass.
 
+## Adding a Command
+
+To add a new command:
+1. Extend `BaseHandler` (`command`, `description`, `events`, `onCommand`).
+2. Add the enum value in `CommandEnum` (alphabetical order).
+3. Create the handler file under `src/handlers/<name>.handler.ts`.
+4. Register the instance in `coreHandlers` in `src/handlers/index.ts`.
+5. Update AGENTS.md documentation section and `README.md` commands list.
+
 ## Environment
 
-- Copy `.env.example` to `.env`: `BOT_TOKEN`, `MONGODB_CONNECTION_STRING`, `NODE_ENV`.
+- Copy `.env.example` to `.env`: `BOT_TOKEN`, `MONGODB_CONNECTION_STRING`, `NODE_ENV`, and optional `ALLOWED_TELEGRAM_IDS` (comma-separated; when set, `authMiddleware` silently ignores every other user, and the re-engagement job is not affected).
 - `src/config/database.ts` throws at import time if `MONGODB_CONNECTION_STRING` is missing; `src/config/bot.ts` needs `BOT_TOKEN` at import time. Importing `src/index.ts` or `config/bot` therefore requires both; importing `repositories` requires only `MONGODB_CONNECTION_STRING`.
 - Vitest does not load `.env`. Tests that touch those modules must mock `@/repositories` / config modules or set env vars themselves. Unit tests need no external Mongo; repository tests use `mongodb-memory-server`.
 - `NODE_ENV=production` switches Pino from pretty output to JSON.
@@ -34,7 +43,8 @@ Baseline: lint, typecheck, and the full test suite pass.
 - Repositories are singletons in `src/repositories/index.ts`. Register new repositories in the `repositories` array: `init()` creates collections, JSON schema validators, and indexes at startup. Repository methods use `@EnsureInitialized` for lazy init; entities extend `BaseEntity` (`created_at`/`updated_at`).
 - User-facing text goes through `ctx.t(key)`. Keep `src/locales/en.json`, `es.json`, and `pt.json` in sync; a missing key renders as the raw key.
 - Path alias `@/*` maps to `src/*` in both TypeScript and Vitest.
-- Image processing uses sharp with UUID-named files in `os.tmpdir()`; clean them up. Compress/crop/resize/rotate reply with `replyWithPhoto`; convert and watermark send documents (media groups of max 10).
+- Image processing uses sharp with UUID-named files in `os.tmpdir()`; clean them up. Compress/crop/resize/rotate reply with `replyWithPhoto`; convert, watermark, and download send documents (media groups of max 10).
+- `/download` fetches user URLs through `ImageDownloaderService`: hosts are checked at DNS lookup and on every redirect (SSRF guard), the body is size-capped while streaming, and the original file is always sent as a document.
 
 ## Testing conventions
 
